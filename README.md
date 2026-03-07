@@ -184,6 +184,52 @@ The kit enables a powerful pattern: **multiple Claude sessions working in parall
 
 This is essentially **agentic MapReduce** — map work across N isolated sessions, reduce in an orchestrator session. The sessions don't need to talk to each other. They share the same constitution, so their outputs converge.
 
+## Edge Cases: Model Degradation and Weaker Models
+
+> **Real-world observation:** Even top-tier models (Opus-class) exhibit behavioral degradation during long sessions — contradicting themselves, losing track of what they did, giving confidently wrong answers, and violating explicit instructions they acknowledged moments earlier. This section exists because it happened in practice while building this very kit.
+
+### The Problem
+
+The starter kit assumes a model that can:
+1. Hold multiple constraints in working memory simultaneously
+2. Self-check actions against stated rules before executing
+3. Maintain accurate recall of what it did vs. didn't do in the current session
+
+**Weaker or degraded models fail at all three.** When they do, the failures are invisible — the model doesn't say "I'm confused," it confidently fabricates a coherent-sounding but wrong answer.
+
+### Known Degradation Patterns
+
+| Pattern | What Happens | Example |
+|---------|-------------|---------|
+| **Constraint evaporation** | Explicit rules acknowledged early in the session get silently dropped | "Never push to main" → pushes to main |
+| **Confident confabulation** | Model gives contradictory answers with equal confidence when challenged | "I pushed to both repos" → "I pushed to neither" → actually pushed to one |
+| **Action amnesia** | Model loses track of what it actually did vs. planned to do | Claims no commits were made when git log shows otherwise |
+| **Sycophantic self-correction** | When challenged, model agrees with the user's framing even if the original answer was correct | Changes a right answer to a wrong one because the user sounded upset |
+| **Instruction bleed** | Instructions for repo A get applied to repo B in multi-repo contexts | Branch rules for one repo leaking into operations on another |
+
+### Mitigations
+
+**For weaker models (Haiku-class, smaller open-source):**
+- **Reduce CLAUDE.md scope** — 9 standards + 9 traps is too much for smaller context windows. Pick the 3-4 most critical for your project and cut the rest
+- **One repo per session** — multi-repo contexts dramatically increase confusion. Never give a weaker model access to repos it shouldn't touch
+- **Hardcode don'ts in hooks, not instructions** — if a model must never push to main, enforce it with a pre-push git hook, not a markdown rule it can forget. Models forget instructions; git hooks don't
+- **Shorter sessions** — degradation compounds over long conversations. End sessions early and rely on `SESSION_NOTES.md` for continuity instead of marathon sessions
+- **Skip skills that require self-adversarial reasoning** — `/adversarial-review` requires the model to argue against itself across 3 passes. Weaker models collapse into agreement by pass 2. Use human review instead
+
+**For strong models showing degradation (long sessions, complex context):**
+- **Watch for confident contradictions** — if the model gives you two different answers about what it did, trust `git log`, not the model
+- **Re-anchor with explicit state checks** — ask the model to run `git log`, `git status`, `git branch` and report raw output before taking further action
+- **Reduce active scope** — if working across multiple repos/branches, finish one completely before starting another
+- **Fresh session over recovery** — if the model is visibly confused, starting a new session with `SESSION_NOTES.md` context is cheaper than trying to re-orient the current one
+
+### The Hard Rule
+
+**Never trust a model's verbal claim about what it did. Verify with tool output.**
+
+If a model says "I didn't push anything," check `git log --remotes`. If it says "I only modified one file," check `git diff --stat`. The model's self-report is the least reliable source of truth in any session — the git history is the actual record.
+
+This applies to all models, all tiers, all context lengths. It's not a weakness of small models — it's a property of LLMs that surfaces more often under load.
+
 ## Requirements
 
 - **Python 3** — for session hooks (stdlib only, no pip packages)
