@@ -16,7 +16,6 @@
      Examples:
      - "NOT a full-stack app — backend only. Don't suggest frontend components."
      - "NOT a library — it's a CLI tool. Don't add exports or public API surface."
-     - "NOT meant to support every database — PostgreSQL only. Don't abstract the DB layer."
      This section is the #1 defense against scope creep. Be specific and harsh. -->
 
 ## Key Directories
@@ -31,20 +30,6 @@
      └── types/         # Shared TypeScript types
      ```
 -->
-
-## Principles
-
-This project follows 5 axiomatic principles. See [`docs/PRINCIPLE_LATTICE.md`](docs/PRINCIPLE_LATTICE.md) for the full lattice with details.
-
-| # | Principle | Axiom |
-|---|-----------|-------|
-| 1 | **Modularity** | Lego blocks, not monoliths |
-| 2 | **Simplicity Wins** | Don't reinvent the wheel. Code exists to be used |
-| 3 | **Errors Are Answers** | Every failure teaches. Errors must be actionable |
-| 4 | **Fix The Pattern** | Cure the root cause. Don't treat symptoms |
-| 5 | **Secrets Stay Secret** | Nothing left open to exploitation |
-
-When making design decisions, check against these principles. If a choice violates one, reconsider.
 
 ## Development Guidelines
 
@@ -66,38 +51,57 @@ When making design decisions, check against these principles. If a choice violat
 ### Running Tests
 <!-- [ADAPT] Your test command. Example: `npm test` -->
 
-## Architecture Patterns
+---
 
-<!-- [ADAPT] Document key architectural patterns as they emerge. Examples:
-     - Data flow diagrams
-     - State management approach
-     - API request/response patterns
-     - Authentication flow
+## Coding Standards
+
+These are the rules. Each one exists because a real bug prompted it. Follow them exactly.
+
+### 1. Simplicity First
+
+Prefer the simpler approach that already works. Three clear lines beat one clever abstraction. Don't create helpers for one-time operations. If something worked before, check git history before rewriting it.
+
+### 2. Actionable Errors
+
+Every error must say what happened, why, and what the user can do about it. `"Something went wrong"` is itself a bug.
+
+### 3. No Dead Code
+
+If you replace a function, remove the old one. No commented-out code, no unused imports, no `_`-prefixed variables that nothing references. If you add a function, something must call it.
+
+### 4. Fix All Instances
+
+When you find a bug, grep for the same pattern across the entire codebase. Fix every instance, or fix none. One fix creates a false sense of safety. This applies to security lists, validation, naming — everything.
+
+### 5. Single Source of Truth for Cross-File Contracts
+
+If two files must agree on a string, format, or list — there must be one authoritative definition that both reference. Never rely on comments like "must match foo.ts." When you discover a contract, add it to the table below and add cross-reference comments in both files.
+
+### 6. User-Agent on External APIs
+
+External services block requests without proper User-Agent headers. Always set one.
+
+### 7. Closed By Default
+
+Empty allowlists mean "deny all", not "allow all." This applies to permissions, feature flags, API access — anything where the safe default is "no."
+
+### 8. Both Sides of the Boundary
+
+When logic exists in two places (client + server, two languages, two config files), update both or update neither. One-sided updates create a false sense of safety worse than no update at all.
+
+### Project-Specific Standards
+
+<!-- [ADAPT] Add standards specific to your tech stack as you discover them. Examples:
+     - "Always use `const` assertions for TypeScript enums"
+     - "Shell scripts must use `set -euo pipefail`"
+     - "All database queries use parameterized statements (never string interpolation)"
 -->
 
-## Things to Avoid
-
-These are universal anti-patterns that cause real damage. They apply every session.
-
-- **Don't add features, refactoring, or "improvements" beyond what was asked.** A bug fix doesn't need surrounding code cleaned up. A simple feature doesn't need extra configurability.
-- **Don't add error handling for scenarios that can't happen.** Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs).
-- **Don't create helpers or abstractions for one-time operations.** Three similar lines of code is better than a premature abstraction. Don't design for hypothetical future requirements.
-- **Don't add docstrings, comments, or type annotations to code you didn't change.** Touch only what's relevant to the task.
-- **Don't use subagents/task tools for research.** Do research directly with Read/Grep/Glob. Subagents burn 5-10x more tokens for the same result. Only use subagents for truly independent parallel *write* tasks.
-- **Don't leave backwards-compatibility shims.** No renaming unused `_vars`, no re-exporting dead types, no `// removed` comments. If it's unused, delete it completely.
-
-<!-- [ADAPT] Add project-specific "don't" rules as you discover them. Format:
-     - **Don't [thing].** [Why it's wrong and what to do instead.] -->
+---
 
 ## Cross-File Contracts
 
-When two files must agree on a string value, format, or list — there MUST be a single source of truth that both reference. This is the #1 source of silent bugs in every multi-file codebase.
-
-**When you discover a cross-file contract:**
-1. First, try to make it a single file (best — builder + parser in one place)
-2. If language boundaries prevent that, add explicit cross-reference comments in BOTH files
-3. Add the contract to this table
-4. If the contract is security-sensitive, add a test asserting both sides match
+Track contracts here so they don't drift silently. See Coding Standard #5.
 
 <!-- [ADAPT] Track contracts here as you discover them.
 
@@ -108,188 +112,33 @@ When two files must agree on a string value, format, or list — there MUST be a
 
 ---
 
-## Coding Standards (CRITICAL)
+## Session Traps
 
-These patterns prevent bugs that occur in every codebase. **Follow them exactly.**
-
-### 1. Simple Solutions Over Complex Ones
-
-**ALWAYS prefer the simpler approach that already works.**
-
-```
-BAD:  "Let me add a complex retry mechanism with exponential backoff"
-GOOD: "Just make the simple request work first"
-
-BAD:  "Let me create an abstraction layer for this one-time operation"
-GOOD: "Three similar lines of code is better than a premature abstraction"
-```
-
-If something worked before, check git history before rewriting it.
-
-### 2. Error Messages Must Be Actionable
-
-```
-// WRONG — useless error
-throw new Error("Something went wrong");
-
-// RIGHT — says what happened, why, and what to do
-throw new Error(`Failed to connect to ${url}: ${err.message}. Check if the server is running.`);
-```
-
-Every error must say what happened, why, and what the user (or developer) can do about it.
-
-### 3. Don't Create Dead Code
-
-If you replace a function or variable, **remove the old one.** Don't leave commented-out code, unused imports, or variables prefixed with `_` that nothing references. Dead code is a lie about the system.
-
-### 4. Check Git History Before "Fixing"
-
-If something used to work:
-```bash
-git log --oneline --all | grep -i "relevant-keyword"  # Find when it changed
-git show <commit>:path/to/file                         # See old working version
-```
-
-Often the fix is reverting to what worked, not adding more code.
-
-### 5. Fix ALL Instances of a Pattern
-
-When you find a bug, **search for the same pattern everywhere**:
-
-```bash
-# Found a null check bug? Check ALL similar accesses
-grep -rn "\.property" src/
-
-# Found a missing validation? Check ALL endpoints
-grep -rn "req.body" src/
-
-# One bug usually means the same mistake exists in 3-5 other places.
-```
-
-Fix them all or none. Fixing one creates a false sense of safety.
-
-### 6. No Cross-File String Contracts Without a Shared Source
-
-If two files must agree on a string value, format, or list — there MUST be a single source of truth that both reference. Never rely on comments like "must match foo.ts".
-
-```
-BAD:  // File A defines format "user:123", File B parses with regex /user:(\d+)/
-      // They will drift. Guaranteed.
-
-GOOD: // shared/formats.ts — single file with builder + parser
-      export function buildUserId(id: number) { return `user:${id}`; }
-      export function parseUserId(str: string) { return parseInt(str.split(':')[1]); }
-```
-
-When you discover a cross-file contract, add it to the Cross-File Contracts table above.
-
-### 7. Set User-Agent for External API Calls
-
-External services block or rate-limit requests without proper User-Agent headers. Always set one.
-
-```
-// WRONG — many APIs will reject this
-fetch('https://api.example.com/data')
-
-// RIGHT
-fetch('https://api.example.com/data', {
-  headers: { 'User-Agent': 'MyApp/1.0' }
-})
-```
-
-### 8. Closed By Default
-
-Security boundaries must default to rejecting everything, not accepting everything.
-
-```
-// WRONG — empty allowlist means "allow all" (inverted security model)
-if (allowedUsers.length > 0 && !allowedUsers.includes(user)) { reject(); }
-
-// RIGHT — empty allowlist means "allow none" (closed by default)
-if (!allowedUsers.includes(user)) { reject(); }
-```
-
-This applies to permissions, feature flags, API access, input validation — anything where the safe default is "no." Never make an empty list mean "accept all."
-
-### 9. Dual-Layer Changes Must Update Both Sides
-
-When logic exists in two places (client + server, frontend + backend, two config files), updating one without the other creates a silent bug that passes all obvious checks.
-
-```
-// If you add a new "dangerous" operation:
-//   1. Add it to the server-side check    ← easy to remember
-//   2. Add it to the client-side check    ← easy to forget
-//   3. Add it to the cross-file contracts table above
-
-// If validation exists in both API and UI:
-//   Update BOTH. Test BOTH. Document the contract.
-```
-
-**Rule of thumb:** Before finishing any change, grep for the same constant/string/pattern in other files. If you find it in two places, update both.
-
-### Project-Specific Standards
-
-<!-- [ADAPT] Add standards specific to your tech stack as you discover them. Examples:
-     - "Always use `const` assertions for TypeScript enums"
-     - "Shell scripts must use `set -euo pipefail`"
-     - "Python imports: stdlib, third-party, local (separated by blank lines)"
-     - "All database queries use parameterized statements (never string interpolation)"
--->
-
----
-
-## Git Workflow (MANDATORY)
-
-**ALWAYS sync with main before pushing:**
-```bash
-git fetch origin
-git merge origin/main --no-edit
-git push -u origin <branch-name>
-```
-
-This prevents branches from falling behind and avoids merge conflicts. Never push without fetching first.
-
-**Commit messages** follow conventional style:
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation
-- `refactor:` Code restructuring
-- `chore:` Maintenance tasks
-
-Keep the first line under 72 characters, add details in the body if needed.
-
----
-
-## Common Session Traps
-
-These are documented bugs in Claude's behavior. Each one has caused real damage in real projects. The word "Stop." is a behavioral interrupt — when you catch yourself thinking the quoted phrase, halt and read the correction.
+These are documented bugs in AI assistant behavior. Each one has caused real damage. The word "Stop." is a behavioral interrupt — when you catch yourself thinking the quoted phrase, halt and read the correction.
 
 ### Trap 1: "Let me optimize this"
-**Stop.** Is it slow? Is the user complaining? If not, don't touch it. Premature optimization is the root of all evil.
+**Stop.** Is it slow? Is the user complaining? If not, don't touch it.
 
-### Trap 2: "I'll fix this one place"
-**Stop.** Search for the same pattern. Fix them all or none. One fix creates a false sense of safety.
+### Trap 2: "The error says X, so I'll fix X"
+**Stop.** The error might be downstream of the real bug. Trace backwards to the root cause.
 
-### Trap 3: "The error says X, so I'll fix X"
-**Stop.** The error might be downstream of the real bug. Trace backwards to the root cause before touching code.
+### Trap 3: "I need to rewrite this function"
+**Stop.** Check git history. Maybe a past version worked. Maybe revert, not rewrite.
 
-### Trap 4: "I need to rewrite this function"
-**Stop.** Check git history. Maybe a past version worked. Maybe revert, not rewrite. `git log` is your friend.
+### Trap 4: "While I'm here, I'll also clean up..."
+**Stop.** Scope creep is the #1 session killer. Do exactly what was asked. If you see something worth improving, mention it — don't do it.
 
-### Trap 5: "While I'm here, I'll also clean up..."
-**Stop.** Scope creep is the #1 session killer. Do exactly what was asked. If you see something worth improving, mention it — don't do it. Unasked-for changes waste context, introduce risk, and make PRs harder to review.
+### Trap 5: "I think the user wants..."
+**Stop.** If the request is ambiguous, **ask** — don't infer. The cost of asking is near zero. The cost of building the wrong thing is an entire session.
 
-### Trap 6: "I'll add this to the validation list"
-**Stop.** If validation/security/permissions exist in two places (client + server, two config files, two languages), you MUST update both. Updating one side creates a false sense of safety worse than updating neither. Grep for the same string in other files before calling it done.
+### Trap 6: "This looks correct to me"
+**Stop.** If you're confirming something looks correct, you need to *prove* it — trace the logic, find a concrete input that exercises the path, verify the output. "Looks correct" without proof is just agreement. See `.claude/skills/adversarial-review.md`.
 
-### Trap 7: "I'll wrap this in a helper for reuse"
-**Stop.** Is it actually used more than once *right now*? If not, inline it. Premature abstraction is worse than duplication — it couples code that shouldn't be coupled and makes future changes harder, not easier. Wait until you have 3 real instances before abstracting.
+### Trap 7: "I'll fix this one place"
+**Stop.** The same mistake exists in 3-5 other places — you just haven't hit them yet. Grep for the pattern. Fix every instance or fix none. One fix creates a false sense of safety. (Coding Standard #4 is the rule; this trap catches you in the moment.)
 
-### Trap 8: "I think the user wants..."
-**Stop.** If the request is ambiguous, **ask** — don't infer. The cost of asking one question is near zero. The cost of building the wrong thing is an entire session wasted. Stated intent > inferred intent > assumed intent, always.
-
-### Trap 9: "This looks correct to me"
-**Stop.** Sycophancy alert. If you're confirming something looks correct, you need to *prove* it — trace the logic, find a concrete input that exercises the path, verify the output. "Looks correct" without proof is just agreement, not analysis. See `.claude/skills/adversarial-review.md`.
+### Trap 8: "I'll add this to the validation list"
+**Stop.** Which list? If validation, security, or permissions exist in two places (client + server, Rust + TypeScript, two config files), you MUST update both. Right now. Before you call it done. Updating one side is worse than updating neither. (Coding Standard #8 is the rule; this trap catches the specific moment you're about to forget the other side.)
 
 ### Project-Specific Traps
 
@@ -300,8 +149,6 @@ These are documented bugs in Claude's behavior. Each one has caused real damage 
 ---
 
 ## What Each Key File Does
-
-The "Touch carefully" column tells you the blast radius. **Yes** = changes here cascade widely; read the whole file before editing. **Moderate** = self-contained but important. **Usually safe** = low-risk changes.
 
 <!-- [ADAPT] Fill this in as you explore the codebase.
 
@@ -315,22 +162,75 @@ The "Touch carefully" column tells you the blast radius. **Yes** = changes here 
 ## Current State (Honest Assessment)
 
 <!-- [ADAPT] Track what works, what's broken, what's missing. Be honest — Claude
-     should know what's incomplete, not just what exists. This prevents it from
-     building on assumptions about features that don't work yet.
+     should know what's incomplete, not just what exists.
 
      | Component | Status | Gap |
      |-----------|--------|-----|
      | Auth flow | Working | None |
      | Email sending | PARTIAL | Templates not implemented yet |
      | Search | MISSING | Only placeholder, no real indexing |
-     | Rate limiting | CRUDE | Fixed window, needs sliding window |
 
      Status values: Working, PARTIAL, MISSING, CRUDE, BROKEN
      Update this table as the project evolves. -->
 
-## "When Editing X, Check Y" Rules
+## Architecture Patterns
 
-These conditional rules fire when you're working in specific areas. They prevent the most common cascade failures.
+<!-- [ADAPT] Document key architectural patterns as they emerge. Examples:
+     - Data flow diagrams
+     - State management approach
+     - API request/response patterns
+-->
+
+---
+
+## Git Workflow (MANDATORY)
+
+**ALWAYS sync with main before pushing:**
+```bash
+git fetch origin
+git merge origin/main --no-edit
+git push -u origin <branch-name>
+```
+
+Never push without fetching first. Commit messages follow conventional style: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`.
+
+---
+
+## Quality Gate — Before Submitting Changes
+
+This gate exists because broken code has been shipped and marked "DONE" without verification. These rules are non-negotiable.
+
+### Core Checks (do ALL, in order)
+
+1. **Test the production path.** Tests must exercise the actual code flow, not a synthetic setup.
+2. **Trace the full data flow.** If A triggers B triggers C, verify A→C end-to-end.
+3. **Run the full test suite.** Test count must not decrease vs. previous runs.
+4. **Grep for the pattern.** Every new pattern gets a codebase-wide search (Coding Standard #4).
+5. **Check the Principle Lattice.** Score your changes against all 5 principles in `docs/PRINCIPLE_LATTICE.md`. This is not decorative — enforce it actively on every change, or the principles become wallpaper. Ask yourself each one explicitly: Modular? Simple? Errors visible? Pattern fixed everywhere? Secrets safe?
+6. **No dead code.** If you added a function, something must call it (Coding Standard #3).
+7. **Check for regressions.** `git diff` and verify you didn't break existing contracts.
+8. **Stay in scope.** No unasked-for refactoring, no bonus features (Trap #4).
+
+### Conditional Checks
+
+9. Cross-file contract added? → Single source of truth or cross-ref in BOTH files (Coding Standard #5)
+10. Touched a boundary in two places? → Updated both sides (Coding Standard #8)
+11. Added a public function? → Something calls it and it's documented
+12. Spawned a process? → Cleanup on exit
+
+### Lessons Learned
+
+<!-- [ADAPT] Track bugs that prompted rules. This is the project's immune system.
+
+| Bug | Root Cause | Rule Added |
+|-----|-----------|------------|
+| Example: API key in error message | Raw error passed to toast | P5 check in error handler |
+| Example: Tests pass but feature broken | Test bypassed real code path | "Test the production path" rule |
+-->
+
+---
+
+## "When Editing X, Check Y" Rules
 
 <!-- [ADAPT] Add conditional rules as you discover dangerous edit patterns. Format:
 
@@ -338,130 +238,27 @@ These conditional rules fire when you're working in specific areas. They prevent
      1. Check [thing that breaks if you forget]
      2. Verify [related invariant]
      3. Update [related file/config]
-
-     Examples:
-     ### When editing API routes:
-     1. Update the client-side API wrapper if the endpoint signature changed
-     2. Update API documentation/swagger if it exists
-     3. Check if any tests reference the old endpoint
-
-     ### When editing database schema:
-     1. Create a migration — never edit the schema directly
-     2. Check all queries that touch the modified table
-     3. Verify seed data still matches the schema
-
-     ### When adding a new feature:
-     1. Add logging at lifecycle events (init, success, error)
-     2. Add to the "Current State" table above
-     3. Update ROADMAP.md or TODO.md if applicable
 -->
 
 ---
 
 ## Context Discipline
 
-### Research → Decision → Implement (Two-Phase Pattern)
+**Research and implementation are separate phases.** When a task requires exploring 5+ files or choosing between approaches, don't mix thinking and doing — research first, write a concrete decision, then implement with fresh focus. See `.claude/skills/research-then-implement.md` for the full pattern.
 
-Complex tasks benefit from separating thinking from doing. When a task requires significant research, exploration, or decision-making:
-
-**Phase 1 — Research (separate session or early in session):**
-- Explore options, read code, identify tradeoffs
-- Output a concrete decision to a file (e.g., `DECISION.md` or task-specific notes)
-- Be specific: "Use JWT + bcrypt-12 + 7-day refresh + HttpOnly cookies" not "implement auth"
-
-**Phase 2 — Implement (fresh context, decision only):**
-- Start from the decision file + only relevant source files
-- No re-exploring, no second-guessing — just execute the plan
-
-This prevents the #1 agent performance killer: context bloat from mixing research and implementation in one giant session.
-
-### Task Contracts (Explicit Done Conditions)
-
-Before starting complex work, define what "done" looks like. Create a contract file or state it explicitly:
-
-```markdown
-## Done when:
-- [ ] All existing tests pass
-- [ ] New endpoint returns 200 for valid input, 401 for missing token
-- [ ] No new TypeScript errors (`npx tsc --noEmit`)
-- [ ] Error messages include HTTP status + actionable fix suggestion
-```
-
-You may NOT consider a task complete until every condition is verifiably satisfied. If a condition can't be met, explain why and ask for revised acceptance criteria.
-
-See `.claude/skills/adversarial-review.md` for a structured verification pattern.
-
-### Neutral Phrasing for Accurate Analysis
-
-When asking Claude to analyze code, use neutral language to avoid sycophantic confirmation bias:
-
-```
-BAD:  "Is there a bug in the auth flow?"         → biases toward finding one
-BAD:  "The auth flow looks correct, right?"       → biases toward confirming
-
-GOOD: "Trace the logic of each component in the auth flow and report your
-       observations. Do not assume anything is broken unless you can prove it."
-```
-
----
-
-## Scaling Up — When This File Gets Too Long
-
-As your project grows, this CLAUDE.md will accumulate project-specific patterns, traps, and standards. When it exceeds ~300 lines, restructure it into a **router** that conditionally loads separate files:
-
-```markdown
-# CLAUDE.md — entry point / router — always read first
-
-Before you do ANYTHING in this codebase, read this file completely.
-
-## Universal rules (always apply)
-→ Read docs/RULES_universal.md
-
-## Conditional routing
-- If you are writing or changing code       → read docs/RULES_coding.md
-- If you are writing tests                  → read docs/RULES_testing.md
-- If tests are failing                      → read docs/RULES_debugging.md
-- If the task involves frontend / UI        → read docs/SKILLS_ui-patterns.md
-- If unsure about anything                  → STOP and ask for clarification
-```
-
-**Rules** = preferences and prohibitions (what to do / not do)
-**Skills** = battle-tested recipes for recurring problems (how to do it)
-
-The goal: Claude reads only what's relevant to the current task, not the entire project history on every turn.
-
----
-
-## Before Submitting Changes
-
-1. Did I test the happy path?
-2. Did I search for similar patterns to fix? (Coding Standard #5)
-3. Did I remove dead code? No commented-out code, no unused variables.
-4. Did I check git history for regressions?
-5. Is this simpler than what was there before? (If not, justify why complexity is necessary.)
-6. If I added a cross-file contract, is there a single source of truth? (Standard #6)
-7. If I touched a boundary that exists in two places, did I update BOTH sides? (Standard #9)
-8. Did I stay within scope? No unasked-for refactoring, no bonus features. (Trap #5)
-9. Are tests still passing?
+**Don't use subagents/task tools for research.** Do research directly with Read/Grep/Glob. Subagents burn 5-10x more tokens for the same result. Only use subagents for truly independent parallel *write* tasks.
 
 ---
 
 ## Session Continuity
 
-When starting a session, look for `SESSION_NOTES.md` in the project root. If it exists, a previous session left continuity notes. Reference them to pick up where the last session left off.
+Maintain a persistent state file at `WORKING_STATE.md` in the project root. See `docs/WORKING_STATE_TEMPLATE.md` for the template.
 
-When ending a session (or if the user is wrapping up), update SESSION_NOTES.md:
+**On session start:** Read `WORKING_STATE.md` before doing anything else. It contains your own continuity — active tasks, things you learned, mistakes to avoid, ideas you parked.
 
-```markdown
-# Session Notes — [date]
-## What we worked on
-- [brief description]
-## Current state
-- [what's done, what's in progress]
-## Next steps
-- [what the next session should pick up]
-## Key decisions made
-- [any architectural or design decisions]
-```
+**Update it** after completing significant steps, when the user corrects you, when you learn something undocumented, and before context-heavy operations.
 
-This is the AI equivalent of a sticky note on the monitor. Simple. Effective.
+**Rules:**
+- **Track uncommitted work.** Always. If 5+ files are modified without a commit, note it prominently. The "20 fixes sitting on disk unpushed" situation must never happen.
+- **Corrections are sacred.** When the user corrects you, write it down immediately. These are the highest-value entries — they prevent you from repeating the same mistake next session.
+- **Prune aggressively.** Learnings promoted to CLAUDE.md get removed. Irrelevant deferred ideas get deleted. Keep under ~200 lines.

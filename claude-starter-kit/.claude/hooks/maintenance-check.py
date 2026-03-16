@@ -3,10 +3,13 @@
 Maintenance Check Hook — Run before session ends
 
 Checks if code files were modified during the session and reminds
-Claude to update relevant documentation before stopping.
+the AI to:
+1. Update relevant documentation
+2. Commit if there are many uncommitted files
+3. Update the working state file for next session
 
-The stop hook is what makes documentation maintenance automatic
-rather than discipline-dependent. Without it, docs drift.
+The stop hook makes documentation maintenance automatic rather than
+discipline-dependent. Without it, docs drift.
 
 Adapted from https://github.com/vincitamore/claude-org-template
 Original author: vincitamore (MIT License)
@@ -20,6 +23,9 @@ import subprocess
 # Minimum transcript lines before triggering maintenance check.
 # Avoids nagging on quick single-command sessions.
 TRIVIAL_SESSION_THRESHOLD = 15
+
+# Number of uncommitted files that triggers a commit reminder.
+COMMIT_WARNING_THRESHOLD = 5
 
 # Code file extensions that trigger the doc update reminder.
 CODE_EXTENSIONS = {
@@ -57,6 +63,14 @@ def get_modified_files(project_root):
         )
         if result2.returncode == 0 and result2.stdout.strip():
             files.extend(result2.stdout.strip().split('\n'))
+
+        # Untracked files
+        result3 = subprocess.run(
+            ['git', 'ls-files', '--others', '--exclude-standard'],
+            capture_output=True, text=True, cwd=project_root, timeout=5
+        )
+        if result3.returncode == 0 and result3.stdout.strip():
+            files.extend(result3.stdout.strip().split('\n'))
     except Exception:
         pass
     return list(set(files))
@@ -91,7 +105,7 @@ def main():
     if line_count < TRIVIAL_SESSION_THRESHOLD:
         sys.exit(0)
 
-    # Check if Claude already stated "No maintenance needed"
+    # Check if already stated "No maintenance needed"
     recent = content[-2000:] if len(content) > 2000 else content
     if "No maintenance needed" in recent:
         sys.exit(0)
@@ -100,8 +114,10 @@ def main():
     project_root = get_project_root()
     modified = get_modified_files(project_root)
 
-    if not has_code_changes(modified):
+    if not modified:
         sys.exit(0)
+
+    has_code = has_code_changes(modified)
 
     # Build the reminder
     code_files = [
@@ -109,25 +125,51 @@ def main():
         if os.path.splitext(f)[1].lower() in CODE_EXTENSIONS
     ]
 
-    file_list = "\n".join("- " + f for f in code_files[:10])
-    if len(code_files) > 10:
-        file_list += f"\n- ... and {len(code_files) - 10} more"
+    all_file_count = len(modified)
 
-    output = {
-        "decision": "block",
-        "reason": (
-            "MAINTENANCE CHECK\n\n"
-            f"Code files were modified this session:\n{file_list}\n\n"
+    parts = []
+    parts.append("MAINTENANCE CHECK\n")
+
+    # Commit warning if many files uncommitted
+    if all_file_count >= COMMIT_WARNING_THRESHOLD:
+        parts.append(
+            f"WARNING: {all_file_count} uncommitted files detected. "
+            "Consider committing your work before ending the session.\n"
+        )
+
+    if code_files:
+        file_list = "\n".join("- " + f for f in code_files[:10])
+        if len(code_files) > 10:
+            file_list += f"\n- ... and {len(code_files) - 10} more"
+
+        parts.append(f"Code files modified this session:\n{file_list}\n")
+        parts.append(
             "Before stopping, check if any documentation needs updating:\n\n"
             "| If this changed...       | Update...                          |\n"
             "|--------------------------|------------------------------------||\n"
             "| Features or behavior     | README.md (user-facing docs)       |\n"
             "| Build process or setup   | CLAUDE.md (dev instructions)       |\n"
             "| Code patterns or lessons | CLAUDE.md (coding standards)       |\n"
-            "| API or interface changes | docs/ (API documentation)          |\n\n"
-            'If docs are already up to date, state "No maintenance needed" and stop.\n'
-            "If ANY need updating: do it now. Lost context is unrecoverable."
+            "| API or interface changes | docs/ (API documentation)          |\n"
         )
+
+    # Always remind about working state
+    parts.append(
+        "Before stopping, update WORKING_STATE.md with:\n"
+        "- What you worked on and current status\n"
+        "- Any learnings or corrections from this session\n"
+        "- Uncommitted files that need attention\n"
+    )
+
+    parts.append(
+        'If docs are already up to date and working state is current, '
+        'state "No maintenance needed" and stop.\n'
+        "If ANY need updating: do it now. Lost context is unrecoverable."
+    )
+
+    output = {
+        "decision": "block",
+        "reason": "\n".join(parts)
     }
 
     print(json.dumps(output))

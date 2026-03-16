@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """
-Session Start Hook — Auto-orientation for new Claude Code sessions
+Session Start Hook — Auto-orientation for new AI coding sessions
 
-Provides Claude with current project state at session start:
+Provides the AI with current project state at session start:
+- Working state from previous sessions (continuity memory)
 - Current git branch and recent commits
-- Uncommitted changes
+- Uncommitted changes (with commit-count warning)
 - Next steps from ROADMAP.md or TODO.md
+
+Works with any AI coding assistant that supports session hooks.
 
 Adapted from https://github.com/vincitamore/claude-org-template
 Original author: vincitamore (MIT License)
@@ -61,6 +64,31 @@ def get_next_steps(project_root):
     return ""
 
 
+def get_working_state(project_root):
+    """Read the working state file if it exists."""
+    state_path = os.path.join(project_root, 'WORKING_STATE.md')
+    if not os.path.exists(state_path):
+        return ""
+    try:
+        with open(state_path, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+        if not content:
+            return ""
+        # Cap at 2000 chars to avoid bloating context
+        if len(content) > 2000:
+            content = content[:2000] + "\n\n*[Working state truncated — read the full file for details]*"
+        return content
+    except Exception:
+        return ""
+
+
+def count_uncommitted_files(status_output):
+    """Count modified/added files from git status output."""
+    if not status_output:
+        return 0
+    return len([line for line in status_output.strip().split('\n') if line.strip()])
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -74,13 +102,26 @@ def main():
     log = run_git(['log', '--oneline', '-5'], project_root)
     status = run_git(['status', '--short'], project_root)
 
+    # Read working state from previous sessions
+    working_state = get_working_state(project_root)
+
     # Read next steps from roadmap/todo
     next_steps = get_next_steps(project_root)
 
     # Build orientation context
     lines = []
-    lines.append("## Project Orientation")
+    lines.append("## Session Orientation")
     lines.append("")
+
+    # Working state first — this is the AI's own continuity
+    if working_state:
+        lines.append("### Previous Session State")
+        lines.append("*Your working state from the last session (read this carefully — it's your own notes):*")
+        lines.append("")
+        lines.append(working_state)
+        lines.append("")
+        lines.append("---")
+        lines.append("")
 
     if branch:
         lines.append(f"**Branch:** `{branch}`")
@@ -93,8 +134,12 @@ def main():
         lines.append("```")
 
     if status:
+        file_count = count_uncommitted_files(status)
         lines.append("")
-        lines.append("**Uncommitted changes:**")
+        if file_count >= 5:
+            lines.append(f"**Uncommitted changes ({file_count} files — consider committing before starting new work):**")
+        else:
+            lines.append("**Uncommitted changes:**")
         lines.append("```")
         lines.append(status)
         lines.append("```")
@@ -105,7 +150,7 @@ def main():
         lines.append(next_steps)
 
     lines.append("")
-    lines.append("*See CLAUDE.md for coding standards and project instructions.*")
+    lines.append("*Read CLAUDE.md for coding standards. Update WORKING_STATE.md as you work.*")
 
     output = {"additionalContext": "\n".join(lines)}
     print(json.dumps(output))

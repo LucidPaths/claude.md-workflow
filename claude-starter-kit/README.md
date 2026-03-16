@@ -1,14 +1,18 @@
 # Claude Starter Kit
 
-A portable folder you drop into any repo to bootstrap high-quality, auditable, future-proofed AI-assisted development with Claude Code. Distilled from battle-tested patterns in the [HIVE](https://github.com/LucidPaths/HiveMind) project.
+A portable folder you drop into any repo to bootstrap high-quality, auditable AI-assisted development. Distilled from battle-tested patterns in the [HIVE](https://github.com/LucidPaths/HiveMind) project.
+
+**Standards are universal** — the principles, coding standards, traps, and quality gate apply to any AI coding assistant.
+
+**Automation is Claude Code specific** — the hooks (`.claude/settings.json`, session-start, maintenance-check) use Claude Code's hook system. If you use a different tool, the hooks won't fire automatically, but the standards in CLAUDE.md still work as a project instruction file.
 
 ## Quick Start
 
 1. **Copy** the contents of this folder into your repo root
-2. **Commit** the files so Claude Code picks them up
-3. **Start a Claude Code session** — the hooks and CLAUDE.md activate automatically
+2. **Commit** the files so your AI assistant picks them up
+3. **Start a session** — the hooks and CLAUDE.md activate automatically
 
-On first session, Claude will explore your codebase and fill in the `[ADAPT]` sections in CLAUDE.md. Future sessions build on that foundation.
+On first session, the AI will explore your codebase and fill in the `[ADAPT]` sections in CLAUDE.md. Future sessions build on that foundation.
 
 ## What's Inside
 
@@ -16,31 +20,60 @@ On first session, Claude will explore your codebase and fill in the `[ADAPT]` se
 |------|------|---------|
 | `CLAUDE.md` | Mixed | Project instructions — universal coding standards (fixed) + project-specific sections (adaptive) |
 | `docs/PRINCIPLE_LATTICE.md` | Mixed | 5 axiomatic design principles — axioms are fixed, instantiations grow with your project |
-| `.claude/settings.json` | Fixed | Registers session-start and session-stop hooks |
-| `.claude/hooks/session-start.py` | Fixed | Auto-injects git state and next steps at session start |
-| `.claude/hooks/maintenance-check.py` | Fixed | Blocks session end if code changed but docs weren't updated |
-| `.claude/skills/structured-reasoning.md` | Fixed | Decision framework: priority hierarchy, stuck protocol, decomposition triggers |
-| `.claude/skills/project-status.md` | Fixed | `/project-status` skill for quick project state overview |
-| `.claude/skills/research-then-implement.md` | Fixed | `/research-decide` skill — two-phase pattern: research → decision file → implement with fresh context |
-| `.claude/skills/adversarial-review.md` | Fixed | `/adversarial-review` skill — three-pass bug verification (bug hunter → disprover → referee) |
-| `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
+| `docs/WORKING_STATE_TEMPLATE.md` | Template | Copy to `WORKING_STATE.md` in project root — session-transcending memory for the AI |
 | `docs/TASK_CONTRACT_TEMPLATE.md` | Template | Copy per-task to define explicit acceptance criteria and done conditions |
+| `.claude/settings.json` | Claude Code | Registers session-start and maintenance-check hooks |
+| `.claude/hooks/session-start.py` | Claude Code | Auto-injects git state, working memory, and next steps at session start |
+| `.claude/hooks/maintenance-check.py` | Claude Code | Blocks session end if code changed but docs/working state weren't updated |
+| `.claude/skills/structured-reasoning.md` | Fixed | Decision framework: priority hierarchy, verification levels, stuck protocol |
+| `.claude/skills/project-status.md` | Fixed | `/project-status` — quick project state overview |
+| `.claude/skills/research-then-implement.md` | Fixed | `/research-decide` — two-phase pattern: explore → decide → implement with fresh context |
+| `.claude/skills/adversarial-review.md` | Fixed | `/adversarial-review` — three-pass bug verification (bug hunter → disprover → referee) |
+| `.claude/skills/codebase-audit.md` | Fixed | `/codebase-audit` — systematic health check: silent failures, dead code, contract drift, security |
+| `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
+| `tests/test_hooks.py` | Fixed | Validates that hook scripts parse and run without errors |
+
+### Hook Divergence from HIVE
+
+The starter kit ships with 2 hooks (session-start, maintenance-check). HIVE itself uses 5 hooks (adds pre-compact, precommit-doc-check, session-end) for its session transcendence system. The starter kit provides the essential subset — add more hooks as your project needs grow.
 
 ### Fixed vs Adaptive
 
-**Fixed** files contain universal truths — coding standards, decision frameworks, git workflows. They work as-is in any project. Don't modify them unless you have a strong reason.
+**Fixed** files contain universal truths — coding standards, decision frameworks, git workflows. They work as-is in any project.
 
-**Adaptive** sections (marked with `<!-- [ADAPT] ... -->` in HTML comments) are placeholders that Claude fills in as it learns your specific project. These include: project overview, key directories, build commands, architecture patterns, and project-specific traps.
+**Adaptive** sections (marked with `<!-- [ADAPT] ... -->`) are placeholders that the AI fills in as it learns your specific project. These include: project overview, key directories, build commands, architecture patterns, and project-specific traps.
+
+## Key Features
+
+### Session-Transcending Memory
+The `WORKING_STATE.md` pattern gives the AI persistent working memory across sessions. It tracks active tasks, corrections, learnings, uncommitted work, and codebase insights — so every session starts where the last one left off.
+
+### Battle-Tested Quality Gate
+The "Before Submitting Changes" section isn't a generic checklist — each rule exists because a specific real bug prompted it. The lattice check works when you enforce it actively on every change, not as a checkbox to skim past.
+
+### Adversarial Review
+`/adversarial-review` exploits sycophancy bias in opposing directions to find real bugs — overclaim in pass 1, disprove in pass 2, adjudicate in pass 3.
+
+### Automatic Maintenance (Claude Code)
+Session hooks ensure docs stay current and working state is updated. The stop hook blocks if code changed but maintenance wasn't done. These require Claude Code — other tools get the standards but not the automation.
 
 ## Requirements
 
 - **Python 3** — Required for the session hooks (most systems have this)
 - **Git** — Required for session-start orientation and maintenance checks
-- **Claude Code** — The CLI tool this kit is designed for
+- **Claude Code** — Required for hooks to fire automatically. Standards in CLAUDE.md work with any tool that reads project instruction files
+
+## Verifying Hooks
+
+Run the hook test to make sure everything parses correctly:
+
+```bash
+python3 tests/test_hooks.py
+```
 
 ## The Principle Lattice
 
-Five principles guide every decision:
+Five axioms guide every decision:
 
 1. **Modularity** — Lego blocks, not monoliths
 2. **Simplicity Wins** — Don't reinvent the wheel
@@ -48,7 +81,7 @@ Five principles guide every decision:
 4. **Fix The Pattern** — Cure the root cause, not the symptom
 5. **Secrets Stay Secret** — Nothing left open to exploitation
 
-See `docs/PRINCIPLE_LATTICE.md` for the full lattice with details and demands.
+See `docs/PRINCIPLE_LATTICE.md` for the full lattice with details.
 
 ## Credits
 
