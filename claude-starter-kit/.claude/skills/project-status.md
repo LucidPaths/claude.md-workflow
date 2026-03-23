@@ -10,7 +10,7 @@ When this skill is invoked, do the following:
    - `ROADMAP.md` — what's done, what's next
    - `TODO.md` — outstanding tasks
    - `CHANGELOG.md` — recent changes
-   - `SESSION_NOTES.md` — continuity notes from last session
+   - `WORKING_STATE.md` — continuity notes from last session
 
 2. **Git State** — Run these commands and report results:
    - `git log --oneline -10` — recent activity

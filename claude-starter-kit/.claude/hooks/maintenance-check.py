@@ -146,7 +146,7 @@ def main():
         parts.append(
             "Before stopping, check if any documentation needs updating:\n\n"
             "| If this changed...       | Update...                          |\n"
-            "|--------------------------|------------------------------------||\n"
+            "|--------------------------|------------------------------------|\n"
             "| Features or behavior     | README.md (user-facing docs)       |\n"
             "| Build process or setup   | CLAUDE.md (dev instructions)       |\n"
             "| Code patterns or lessons | CLAUDE.md (coding standards)       |\n"

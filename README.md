@@ -54,11 +54,11 @@ Every decision Claude makes is scored against these. If a choice violates one, i
 
 `CLAUDE.md` is the heavyweight file. It contains:
 
-- **9 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, check git history before rewriting, fix ALL instances of a pattern, no cross-file string contracts without a shared source, User-Agent headers on API calls, closed-by-default security, dual-layer changes must update both sides
-- **9 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, premature abstraction, etc.)
+- **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix ALL instances of a pattern, single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary
+- **8 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, etc.)
 - **Cross-file contract tracking** — a table for tracking values that must stay in sync across files
 - **`[ADAPT]` sections** — placeholders Claude fills in as it learns your specific project (overview, key directories, build commands, architecture patterns, gotchas)
-- **Session continuity** — `SESSION_NOTES.md` pattern for handing off context between sessions
+- **Session continuity** — `WORKING_STATE.md` pattern for handing off context between sessions
 
 The adaptive design means the kit grows with your project instead of being static boilerplate.
 
@@ -118,13 +118,13 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 | Claude drifts from project context | `[ADAPT]` sections in CLAUDE.md that grow with the project |
 | Session starts cold, wastes turns exploring | session-start.py auto-injects git state |
 | Documentation rots, future sessions hallucinate | maintenance-check.py blocks session end until docs updated |
-| Scope creep ("while I'm here, I'll also...") | Trap #5 + scope guard in structured-reasoning |
+| Scope creep ("while I'm here, I'll also...") | Trap #4 + scope guard in structured-reasoning |
 | Sycophantic code review ("this looks correct") | Adversarial 3-pass review exploits the bias |
 | Context bloat from mixing research and coding | research-then-implement separates phases |
-| Single-instance fix creates false safety | Coding Standard #5: fix ALL instances or none |
-| Cross-file values drift silently | Cross-file contracts table + Coding Standard #6 |
+| Single-instance fix creates false safety | Coding Standard #4: fix ALL instances or none |
+| Cross-file values drift silently | Cross-file contracts table + Coding Standard #5 |
 | Vague acceptance criteria, gold-plating | Task contract template with explicit done conditions |
-| Two-layer validation updated on one side only | Coding Standard #9 + Trap #6 |
+| Two-layer validation updated on one side only | Coding Standard #8 + Trap #8 |
 
 ## Benefits for Claude
 
@@ -132,7 +132,7 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 2. **Behavioral guardrails** — the 9 traps catch real failure patterns before they cause damage
 3. **Explicit done conditions** — task contracts prevent both under-delivery and over-engineering
 4. **Structured decision-making** — priority hierarchy and research-then-implement prevent flailing
-5. **Session continuity** — `SESSION_NOTES.md` bridges context between sessions
+5. **Session continuity** — `WORKING_STATE.md` bridges context between sessions
 
 ## Can Other AI Tools Use This?
 
@@ -213,14 +213,14 @@ The starter kit assumes a model that can:
 - **Reduce CLAUDE.md scope** — 9 standards + 9 traps is too much for smaller context windows. Pick the 3-4 most critical for your project and cut the rest
 - **One repo per session** — multi-repo contexts dramatically increase confusion. Never give a weaker model access to repos it shouldn't touch
 - **Hardcode don'ts in hooks, not instructions** — if a model must never push to main, enforce it with a pre-push git hook, not a markdown rule it can forget. Models forget instructions; git hooks don't
-- **Shorter sessions** — degradation compounds over long conversations. End sessions early and rely on `SESSION_NOTES.md` for continuity instead of marathon sessions
+- **Shorter sessions** — degradation compounds over long conversations. End sessions early and rely on `WORKING_STATE.md` for continuity instead of marathon sessions
 - **Skip skills that require self-adversarial reasoning** — `/adversarial-review` requires the model to argue against itself across 3 passes. Weaker models collapse into agreement by pass 2. Use human review instead
 
 **For strong models showing degradation (long sessions, complex context):**
 - **Watch for confident contradictions** — if the model gives you two different answers about what it did, trust `git log`, not the model
 - **Re-anchor with explicit state checks** — ask the model to run `git log`, `git status`, `git branch` and report raw output before taking further action
 - **Reduce active scope** — if working across multiple repos/branches, finish one completely before starting another
-- **Fresh session over recovery** — if the model is visibly confused, starting a new session with `SESSION_NOTES.md` context is cheaper than trying to re-orient the current one
+- **Fresh session over recovery** — if the model is visibly confused, starting a new session with `WORKING_STATE.md` context is cheaper than trying to re-orient the current one
 
 ### The Hard Rule
 

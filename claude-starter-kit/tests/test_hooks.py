@@ -69,7 +69,7 @@ for event_name, event_hooks in settings.get("hooks", {}).items():
                 script_name = cmd.split(".claude/hooks/")[-1].rstrip('"')
                 script_path = os.path.join(HOOKS_DIR, script_name)
                 test(
-                    f"{event_name} → {script_name} exists",
+                    f"{event_name} -> {script_name} exists",
                     os.path.isfile(script_path),
                     f"not found: {script_path}",
                 )
