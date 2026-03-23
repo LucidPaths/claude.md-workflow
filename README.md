@@ -236,6 +236,28 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Git** — for orientation and maintenance checks
 - **Claude Code** — the CLI tool this kit is designed for
 
+## Changelog
+
+### 2026-03-23 — Audit & Fixes
+
+Full harness review against CLAUDE.md source of truth and Claude Code hook documentation. Both hooks verified end-to-end in terminal.
+
+**Fixed:**
+- README counted "9 coding standards" and "9 traps" — actual count is 8 each
+- Failure mode table cross-references pointed to wrong standard/trap numbers (#5→#4, #6→#5, #9+Trap#6→#8+Trap#8, Trap#5→Trap#4)
+- 5 references to `SESSION_NOTES.md` (renamed to `WORKING_STATE.md` in the kit but README and `/project-status` skill still used the old name)
+- `maintenance-check.py` markdown table had extra `|` in separator row, breaking rendering
+- `test_hooks.py` used Unicode `→` arrow — crashes on Windows cp1252 terminals (`UnicodeEncodeError`)
+
+**Verified:**
+- `transcript_path` is confirmed in the Claude Code `Stop` hook stdin schema — maintenance-check.py receives it correctly
+- Both hooks tested end-to-end: `session-start.py` outputs valid `additionalContext` JSON, `maintenance-check.py` correctly returns `"decision": "block"` when code files are modified
+- All 10 smoke tests pass natively on Windows (no `PYTHONIOENCODING` workaround needed)
+
+### 2026-03-17 — Initial Release
+
+Starter kit extracted from [HiveMind](https://github.com/LucidPaths/HiveMind) `fix/audit-findings` branch. Includes CLAUDE.md, 2 hooks, 5 skills, principle lattice, and templates.
+
 ## Credits
 
 - Principle lattice concept and hook patterns adapted from [vincitamore/claude-org-template](https://github.com/vincitamore/claude-org-template)
