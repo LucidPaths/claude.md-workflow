@@ -4,6 +4,15 @@
 
 When stuck between two approaches, score them against the lattice. If one cleanly honors more principles without violating any, it wins. If both violate something, find a third approach.
 
+### How to Write Good Instantiations
+
+Instantiations are the bridge between abstract principles and daily decisions. They're what make the lattice *yours* instead of generic advice.
+
+- **Write instantiations across domains:** code, infrastructure, process, communication
+- **Each principle should have 3-8 concrete instantiations** — enough to show the pattern, not so many they become a checklist
+- **Instantiations should be SPECIFIC and OPINIONATED, not generic truisms** — "use good variable names" is useless; "domain objects use ubiquitous language from the glossary" is useful
+- **The compression test:** can one principle derive another? If yes, merge them. Five sharp principles beat ten fuzzy ones.
+
 ---
 
 ## 1. Modularity
@@ -15,11 +24,13 @@ Every component should be self-contained. Pull one out — that thing stops work
 **The test:** Can you remove this component without breaking something unrelated?
 
 **Instantiations:**
-<!-- [ADAPT] Add concrete examples as your project grows. Examples:
-     - "API routes are independent — auth failing doesn't break health checks"
-     - "Components use props, not global state — any component is replaceable"
+- API routes are independent — auth failing doesn't break health checks
+<!-- [ADAPT] Add 2-7 more instantiations across domains. Think:
+     - Code: how are your modules/packages/services separated?
+     - Infrastructure: can you deploy one service without redeploying all?
+     - Process: can one team's workflow change without blocking others?
+     - Communication: are docs self-contained or do they require tribal knowledge?
 -->
-*None yet — add concrete examples as the project grows.*
 
 ---
 
@@ -32,11 +43,13 @@ The best code is code someone else already debugged. Complexity is a cost, not a
 **The test:** Is there a simpler approach that already works? Would three explicit lines beat this abstraction?
 
 **Instantiations:**
-<!-- [ADAPT] Add examples. Examples:
-     - "Using Zod for validation instead of hand-rolled checks"
-     - "localStorage for settings (not a custom database)"
+- Using Zod/Pydantic for validation instead of hand-rolled checks
+<!-- [ADAPT] Add 2-7 more instantiations across domains. Think:
+     - Code: where do you use libraries instead of rolling your own?
+     - Infrastructure: managed services over self-hosted where possible?
+     - Process: one-step commands over multi-step procedures?
+     - Communication: READMEs with copy-paste examples over lengthy docs?
 -->
-*None yet — add concrete examples as the project grows.*
 
 ---
 
@@ -49,11 +62,13 @@ An error that says "something went wrong" is itself a bug. Every error says what
 **The test:** If this operation fails, would the developer (or user) know what happened and what to do?
 
 **Instantiations:**
-<!-- [ADAPT] Add examples. Examples:
-     - "API errors include HTTP status + response body + suggested fix"
-     - "Startup checks verify all required env vars before proceeding"
+- API errors include HTTP status + response body + suggested fix
+<!-- [ADAPT] Add 2-7 more instantiations across domains. Think:
+     - Code: do error messages include what was expected vs. what was received?
+     - Infrastructure: do health checks report WHY they failed, not just that they did?
+     - Process: do CI failures link to the relevant log section?
+     - Communication: do error docs include the fix, not just the symptom?
 -->
-*None yet — add concrete examples as the project grows.*
 
 ---
 
@@ -66,11 +81,13 @@ When you find a bug, the bug is never alone. The same mistake exists in 3-5 othe
 **The test:** Did you grep for the same mistake elsewhere? Did you fix all instances?
 
 **Instantiations:**
-<!-- [ADAPT] Add examples. Examples:
-     - "Found missing null check — grepped all `.property` accesses, fixed 4 more"
-     - "Same validation bug in 3 endpoints — extracted shared validator"
+- Found missing null check — grepped all `.property` accesses, fixed 4 more
+<!-- [ADAPT] Add 2-7 more instantiations across domains. Think:
+     - Code: when you fix a bug, do you search for the same class of bug?
+     - Infrastructure: when a config issue hits one service, do you check all services?
+     - Process: when a process fails, do you fix the process or just the output?
+     - Communication: when a doc is wrong, do you check related docs for the same error?
 -->
-*None yet — add concrete examples as the project grows.*
 
 ---
 
@@ -83,11 +100,13 @@ API keys belong in environment variables or encrypted storage — never in local
 **The test:** Could a log message, error output, or config file leak something sensitive?
 
 **Instantiations:**
-<!-- [ADAPT] Add examples. Examples:
-     - "API keys in .env, never committed (in .gitignore)"
-     - "Error messages never include credentials or tokens"
+- API keys in `.env`, never committed (`.gitignore` enforced)
+<!-- [ADAPT] Add 2-7 more instantiations across domains. Think:
+     - Code: are secrets filtered from logs and error messages?
+     - Infrastructure: are credentials rotated? stored in vault/secrets manager?
+     - Process: can a new developer onboard without anyone sharing passwords in Slack?
+     - Communication: do screenshots in docs have credentials redacted?
 -->
-*None yet — add concrete examples as the project grows.*
 
 ---
 
@@ -108,6 +127,18 @@ Every PR: *does this change violate any principle?* Not "is this code clean" (su
 ### For Active Enforcement
 
 The lattice only works if you check it actively. On every change, ask each principle explicitly: Modular? Simple? Errors visible? Pattern fixed everywhere? Secrets safe? If you treat it as a checkbox to skim past, it becomes wallpaper. If you treat it as a real constraint, it catches real bugs.
+
+---
+
+## Adding Your Own Principles
+
+Not every team needs exactly these five. Add a principle when:
+
+1. **You care about the same thing in different contexts** — it keeps coming up in code review, architecture discussions, incident retros
+2. **A decision feels obviously right but you can't say why** — that's an unarticulated principle waiting to be named
+3. **You disagree with conventional wisdom and can articulate why** — "we don't do X because Y" is a principle worth writing down
+
+Before adding, apply the **compression test**: can the new principle be derived from an existing one? If "Don't Repeat Yourself" is just a special case of your "Modularity" principle, don't add it — add an instantiation under Modularity instead. Five sharp principles beat ten fuzzy ones.
 
 ---
 

@@ -20,6 +20,9 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 |------|------|---------|
 | `CLAUDE.md` | Mixed | Project instructions — universal coding standards (fixed) + project-specific sections (adaptive) |
 | `docs/PRINCIPLE_LATTICE.md` | Mixed | 5 axiomatic design principles — axioms are fixed, instantiations grow with your project |
+| `.claude/rules/coding-standards.md` | Fixed | 8 universal coding standards — auto-loaded by Claude Code |
+| `.claude/rules/traps.md` | Fixed | 13 behavioral traps + anti-rationalization table — auto-loaded by Claude Code |
+| `.claude/rules/quality-gate.md` | Fixed | Pre-submit verification checklist — auto-loaded by Claude Code |
 | `docs/WORKING_STATE_TEMPLATE.md` | Template | Copy to `WORKING_STATE.md` in project root — session-transcending memory for the AI |
 | `docs/TASK_CONTRACT_TEMPLATE.md` | Template | Copy per-task to define explicit acceptance criteria and done conditions |
 | `docs/ROLE_TEMPLATE.md` | Template | Role-based workflow template (domain expertise, traps, checks, patterns, boundaries) |
@@ -37,7 +40,16 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `.claude/skills/adversarial-review.md` | Fixed | `/adversarial-review` — three-pass bug verification (bug hunter → disprover → referee) |
 | `.claude/skills/codebase-audit.md` | Fixed | `/codebase-audit` — systematic health check: silent failures, dead code, contract drift, security |
 | `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
+| `samples/` | Reference | Filled-in examples from real projects showing what adapted files look like |
 | `tests/test_hooks.py` | Fixed | Validates that hook scripts parse and run without errors |
+
+### Modular Architecture
+
+The kit uses a **two-layer architecture**:
+- **`CLAUDE.md`** — project-specific configuration (adaptive sections, cross-file contracts)
+- **`.claude/rules/`** — universal standards (coding standards, traps, quality gate) auto-loaded by Claude Code without explicit imports
+
+This separation means universal rules stay clean and version-controlled independently of project-specific adaptations.
 
 ### Hook Lifecycle Coverage
 
