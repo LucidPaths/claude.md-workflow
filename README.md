@@ -23,15 +23,23 @@ claude-starter-kit/
 │   ├── PR_GUIDELINES.md               # PR description + commit format
 │   ├── hooks/
 │   │   ├── session-start.py           # Auto-injects git state at session start
-│   │   └── maintenance-check.py       # Blocks session end if docs not updated
+│   │   ├── maintenance-check.py       # Blocks session end if docs not updated
+│   │   ├── pre-compact.py             # Snapshots state before context compaction
+│   │   ├── session-end.py             # Auto-persists working state on exit
+│   │   ├── precommit-doc-check.py     # Blocks commits missing doc updates
+│   │   └── _state_utils.py            # Shared utilities for state hooks
 │   └── skills/
 │       ├── structured-reasoning.md    # Decision framework + priority hierarchy
 │       ├── project-status.md          # /project-status — quick state overview
 │       ├── research-then-implement.md # /research-decide — two-phase task pattern
-│       └── adversarial-review.md      # /adversarial-review — 3-pass bug verification
+│       ├── adversarial-review.md      # /adversarial-review — 3-pass bug verification
+│       └── codebase-audit.md          # /codebase-audit — systematic health check
 └── docs/
     ├── PRINCIPLE_LATTICE.md           # 5 axiomatic design principles
-    └── TASK_CONTRACT_TEMPLATE.md      # Per-task acceptance criteria template
+    ├── TASK_CONTRACT_TEMPLATE.md      # Per-task acceptance criteria template
+    ├── WORKING_STATE_TEMPLATE.md      # Session-transcending memory template
+    ├── ROLE_TEMPLATE.md               # Role-based workflow template
+    └── GLOBAL_ROUTER_TEMPLATE.md      # Thin CLAUDE.md router template
 ```
 
 ## The Four Layers
@@ -55,20 +63,23 @@ Every decision Claude makes is scored against these. If a choice violates one, i
 `CLAUDE.md` is the heavyweight file. It contains:
 
 - **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix ALL instances of a pattern, single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary
-- **8 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, etc.)
+- **10 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, retry loops, verification language, etc.) plus an anti-rationalization table
+- **Verification language rule** — forbidden phrases ("should work now", "looks correct") that require evidence from tool calls before any completion claim
+- **Anti-rationalization patterns** — catches the model constructing arguments for why traps don't apply ("this is different because..." = it's not)
 - **Cross-file contract tracking** — a table for tracking values that must stay in sync across files
 - **`[ADAPT]` sections** — placeholders Claude fills in as it learns your specific project (overview, key directories, build commands, architecture patterns, gotchas)
-- **Session continuity** — `WORKING_STATE.md` pattern for handing off context between sessions
+- **Session transcendence** — `WORKING_STATE.md` pattern + pre-compaction snapshots for context that survives both session boundaries and context compaction
 
 The adaptive design means the kit grows with your project instead of being static boilerplate.
 
 ### 3. Automation (the hooks)
 
-Two lifecycle hooks registered in `.claude/settings.json`:
+Six lifecycle hooks registered in `.claude/settings.json`:
 
 **Session Start** (`session-start.py`):
 - Injects current branch, last 5 commits, uncommitted changes
 - Pulls next steps from `ROADMAP.md` or `TODO.md` if they exist
+- Restores pre-compaction snapshot if one exists (session transcendence)
 - Claude starts every session oriented, not asking "what are we working on?"
 
 **Session Stop** (`maintenance-check.py`):
@@ -76,9 +87,29 @@ Two lifecycle hooks registered in `.claude/settings.json`:
 - If yes, **blocks session end** until documentation is confirmed up-to-date
 - Prevents documentation rot — the #1 cause of stale project context
 
+**Pre-Compaction** (`pre-compact.py`):
+- Fires before Claude Code compresses context in long sessions
+- Auto-updates working state ephemeral sections from transcript
+- Saves a full snapshot to disk so session-start.py can restore it
+- Enables **session transcendence** — context survives compaction
+
+**Session End** (`session-end.py`):
+- Auto-persists working state on graceful session exit
+- Updates ephemeral sections (Active Task, Conversation Context)
+- Preserves curated sections (Corrections, Learnings) untouched
+
+**Pre-Commit Doc Check** (`precommit-doc-check.py`):
+- Fires before `git commit` via PreToolUse hook
+- Blocks commits where code files are staged but no documentation is
+- Catches doc rot at commit time, not just session end
+
+**Shared Utilities** (`_state_utils.py`):
+- Common functions for working state auto-maintenance
+- Used by pre-compact.py and session-end.py
+
 ### 4. Skills (the frameworks)
 
-Four reusable decision patterns invoked as slash commands:
+Five reusable decision patterns invoked as slash commands:
 
 | Skill | Command | What It Does |
 |-------|---------|--------------|
@@ -86,6 +117,7 @@ Four reusable decision patterns invoked as slash commands:
 | **Project Status** | `/project-status` | Quick state overview from ROADMAP, TODO, git log, uncommitted changes, and health checks |
 | **Research Then Implement** | `/research-decide` | Two-phase pattern: research and write a decision file first, then implement with fresh context. Prevents context bloat from mixing exploration and coding |
 | **Adversarial Review** | `/adversarial-review` | Three-pass code review: Pass 1 aggressively hunts bugs (overclaims), Pass 2 tries to disprove each finding (overclaims disprovals), Pass 3 adjudicates. The intersection is accurate. Exploits model sycophancy as a feature |
+| **Codebase Audit** | `/codebase-audit` | Systematic health check: silent failures, dead code, contract drift, security gaps. Produces actionable findings, not vague warnings |
 
 ## How It Works
 
@@ -101,7 +133,7 @@ First session:
 
 Every session:
   → Orientation at start (branch, commits, changes, next steps)
-  → Standards enforced during work (9 coding standards, 9 trap interrupts)
+  → Standards enforced during work (8 coding standards, 10 trap interrupts)
   → Documentation check at end (blocks if code changed but docs didn't)
 
 Per task:
@@ -129,7 +161,7 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 ## Benefits for Claude
 
 1. **Immediate orientation** — no wasted turns asking "what are we working on?"
-2. **Behavioral guardrails** — the 9 traps catch real failure patterns before they cause damage
+2. **Behavioral guardrails** — the 10 traps + anti-rationalization catch real failure patterns before they cause damage
 3. **Explicit done conditions** — task contracts prevent both under-delivery and over-engineering
 4. **Structured decision-making** — priority hierarchy and research-then-implement prevent flailing
 5. **Session continuity** — `WORKING_STATE.md` bridges context between sessions
@@ -210,7 +242,7 @@ The starter kit assumes a model that can:
 ### Mitigations
 
 **For weaker models (Haiku-class, smaller open-source):**
-- **Reduce CLAUDE.md scope** — 9 standards + 9 traps is too much for smaller context windows. Pick the 3-4 most critical for your project and cut the rest
+- **Reduce CLAUDE.md scope** — 8 standards + 10 traps is too much for smaller context windows. Pick the 3-4 most critical for your project and cut the rest
 - **One repo per session** — multi-repo contexts dramatically increase confusion. Never give a weaker model access to repos it shouldn't touch
 - **Hardcode don'ts in hooks, not instructions** — if a model must never push to main, enforce it with a pre-push git hook, not a markdown rule it can forget. Models forget instructions; git hooks don't
 - **Shorter sessions** — degradation compounds over long conversations. End sessions early and rely on `WORKING_STATE.md` for continuity instead of marathon sessions
@@ -237,6 +269,23 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-03-24 — Session Transcendence & Publish Prep
+
+Added 4 new hooks for full session lifecycle coverage, 2 new templates, and hardened behavioral traps.
+
+**Added:**
+- `pre-compact.py` — snapshots working state before context compaction (enables session transcendence)
+- `session-end.py` — auto-persists working state on graceful exit
+- `precommit-doc-check.py` — blocks commits missing documentation updates
+- `_state_utils.py` — shared utilities for state management hooks
+- `codebase-audit.md` skill — `/codebase-audit` systematic health check
+- `ROLE_TEMPLATE.md` — template for role-based workflows (5 sections: domain expertise, traps, checks, patterns, boundaries)
+- `GLOBAL_ROUTER_TEMPLATE.md` — thin CLAUDE.md router template for docs-heavy setups
+- Trap 9 (retry loops) and Trap 10 (verification language) in CLAUDE.md
+- Anti-rationalization self-check table in CLAUDE.md
+- Verification Language Rule in quality gate
+- MIT License
 
 ### 2026-03-23 — Audit & Fixes
 
