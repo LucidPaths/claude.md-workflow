@@ -75,7 +75,12 @@ When you find a bug, grep for the same pattern across the entire codebase. Fix e
 
 ### 5. Single Source of Truth for Cross-File Contracts
 
-If two files must agree on a string, format, or list — there must be one authoritative definition that both reference. Never rely on comments like "must match foo.ts." When you discover a contract, add it to the table below and add cross-reference comments in both files.
+If two files must agree on a string, format, or list — there must be one authoritative definition that both reference. Never rely on comments like "must match foo.ts." When you discover a contract, follow this process:
+
+1. **Try to make it a single file** (best — one builder + one parser in the same module)
+2. **If cross-language prevents that**, add explicit cross-reference comments in BOTH files
+3. **Add the contract** to the contracts table in CLAUDE.md
+4. **If security-sensitive**, add a test asserting both sides match
 
 ### 6. User-Agent on External APIs
 
@@ -116,6 +121,8 @@ Track contracts here so they don't drift silently. See Coding Standard #5.
 
 These are documented bugs in AI assistant behavior. Each one has caused real damage. The word "Stop." is a behavioral interrupt — when you catch yourself thinking the quoted phrase, halt and read the correction.
 
+**Violating the letter of these traps is violating their spirit.** "I'm not optimizing, I'm *improving*" IS Trap 1. The relabeling IS the trap.
+
 ### Trap 1: "Let me optimize this"
 **Stop.** Is it slow? Is the user complaining? If not, don't touch it.
 
@@ -139,6 +146,23 @@ These are documented bugs in AI assistant behavior. Each one has caused real dam
 
 ### Trap 8: "I'll add this to the validation list"
 **Stop.** Which list? If validation, security, or permissions exist in two places (client + server, Rust + TypeScript, two config files), you MUST update both. Right now. Before you call it done. Updating one side is worse than updating neither. (Coding Standard #8 is the rule; this trap catches the specific moment you're about to forget the other side.)
+
+### Trap 9: "Let me try one more fix"
+**Stop.** Three failed fixes on the same issue means you're guessing, not debugging. State what you've tried, what failed, and ask the user for direction. Do not attempt a fourth fix.
+
+### Trap 10: "This should work now"
+**Stop.** Prove it. Run the test, show the output, trace the logic. Forbidden phrases: "Should work now", "Looks correct", "I believe this fixes", "Done!", "I'm confident this". Every claim requires evidence from a tool call made AFTER the change.
+
+### Self-Check: Am I Rationalizing?
+
+If you find yourself constructing an argument for why a trap doesn't apply to your current situation, that IS the trap firing. Common rationalization patterns:
+
+| If you're thinking... | You're actually doing... |
+|---|---|
+| "This is different because..." | It's not. Apply the trap. |
+| "I'm not optimizing, I'm *improving*" | Trap 1 with a label swap. |
+| "Just one small refactor..." | Trap 3 unless it's in the task contract. |
+| "I already know the answer" | Then proving it takes 5 seconds. |
 
 ### Project-Specific Traps
 
@@ -211,6 +235,37 @@ This gate exists because broken code has been shipped and marked "DONE" without 
 7. **Check for regressions.** `git diff` and verify you didn't break existing contracts.
 8. **Stay in scope.** No unasked-for refactoring, no bonus features (Trap #4).
 
+### Verification Language Rule
+
+**Unverified claims are lies, not estimates.** No completion claims without fresh verification evidence.
+
+```
+BEFORE claiming any status:
+1. IDENTIFY — What command proves this claim?
+2. RUN — Execute the command (fresh, complete, in this response)
+3. READ — Full output, check exit code, count failures
+4. REPORT — State claim WITH the evidence: "Ran X → Y → [claim]"
+
+Skip any step = the claim is unverified.
+```
+
+**Forbidden phrases** (if you catch yourself typing these, STOP and run the command):
+- "Should work now" / "This should fix it"
+- "Looks correct" / "Seems right"
+- "Done!" / "Fixed!" / "All good!" (before verification)
+- "I'm confident this works" (confidence ≠ evidence)
+- "I believe this fixes it"
+
+### Rationalization Patterns
+
+Every shipped bug was preceded by a thought that felt reasonable. If you catch yourself thinking any of these, you are about to repeat history:
+
+| Rationalization | Defense |
+|---|---|
+| "I tested it locally and it works" | Test the ACTUAL deployment/production path, not dev setup. |
+| "`let _ =` / `catch {}` is fine here" | If the operation failing breaks the feature, handle the error. |
+| "I'll wire up the caller later" | If nothing calls it NOW, it's dead code. Wire it or don't write it. |
+
 ### Conditional Checks
 
 9. Cross-file contract added? → Single source of truth or cross-ref in BOTH files (Coding Standard #5)
@@ -262,3 +317,13 @@ Maintain a persistent state file at `WORKING_STATE.md` in the project root. See 
 - **Track uncommitted work.** Always. If 5+ files are modified without a commit, note it prominently. The "20 fixes sitting on disk unpushed" situation must never happen.
 - **Corrections are sacred.** When the user corrects you, write it down immediately. These are the highest-value entries — they prevent you from repeating the same mistake next session.
 - **Prune aggressively.** Learnings promoted to CLAUDE.md get removed. Irrelevant deferred ideas get deleted. Keep under ~200 lines.
+
+### Self-Improvement Lifecycle
+
+Discoveries follow a promotion path:
+
+1. **Session discovery** → Note it in WORKING_STATE.md Learnings section
+2. **Proven stable across 3+ sessions** → Promote to CLAUDE.md `[ADAPT]` section
+3. **If promoted to CLAUDE.md, remove from WORKING_STATE.md** — no duplication
+
+**Corrections are sacred — never auto-pruned.** User corrections are the highest-value entries. They survive until explicitly superseded by a newer correction or promoted to a permanent rule.

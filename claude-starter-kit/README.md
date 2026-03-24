@@ -22,9 +22,15 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `docs/PRINCIPLE_LATTICE.md` | Mixed | 5 axiomatic design principles — axioms are fixed, instantiations grow with your project |
 | `docs/WORKING_STATE_TEMPLATE.md` | Template | Copy to `WORKING_STATE.md` in project root — session-transcending memory for the AI |
 | `docs/TASK_CONTRACT_TEMPLATE.md` | Template | Copy per-task to define explicit acceptance criteria and done conditions |
-| `.claude/settings.json` | Claude Code | Registers session-start and maintenance-check hooks |
+| `docs/ROLE_TEMPLATE.md` | Template | Role-based workflow template (domain expertise, traps, checks, patterns, boundaries) |
+| `docs/GLOBAL_ROUTER_TEMPLATE.md` | Template | Thin CLAUDE.md router for projects with many docs/ files |
+| `.claude/settings.json` | Claude Code | Registers all lifecycle hooks |
 | `.claude/hooks/session-start.py` | Claude Code | Auto-injects git state, working memory, and next steps at session start |
 | `.claude/hooks/maintenance-check.py` | Claude Code | Blocks session end if code changed but docs/working state weren't updated |
+| `.claude/hooks/pre-compact.py` | Claude Code | Snapshots working state before context compaction (session transcendence) |
+| `.claude/hooks/session-end.py` | Claude Code | Auto-persists working state on graceful session exit |
+| `.claude/hooks/precommit-doc-check.py` | Claude Code | Blocks commits where code is staged but no docs are |
+| `.claude/hooks/_state_utils.py` | Claude Code | Shared utilities for state management hooks |
 | `.claude/skills/structured-reasoning.md` | Fixed | Decision framework: priority hierarchy, verification levels, stuck protocol |
 | `.claude/skills/project-status.md` | Fixed | `/project-status` — quick project state overview |
 | `.claude/skills/research-then-implement.md` | Fixed | `/research-decide` — two-phase pattern: explore → decide → implement with fresh context |
@@ -33,9 +39,9 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
 | `tests/test_hooks.py` | Fixed | Validates that hook scripts parse and run without errors |
 
-### Hook Divergence from HIVE
+### Hook Lifecycle Coverage
 
-The starter kit ships with 2 hooks (session-start, maintenance-check). HIVE itself uses 5 hooks (adds pre-compact, precommit-doc-check, session-end) for its session transcendence system. The starter kit provides the essential subset — add more hooks as your project needs grow.
+The starter kit ships with 6 hooks covering the full session lifecycle: session-start, maintenance-check, pre-compact, session-end, precommit-doc-check, and shared utilities (_state_utils.py). Together these enable session transcendence — context survives both session boundaries and context compaction.
 
 ### Fixed vs Adaptive
 

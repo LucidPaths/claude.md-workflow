@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/session-start.py\"",
+            "timeout": 10,
+            "statusMessage": "Loading project context..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -12,14 +24,39 @@
         ]
       }
     ],
-    "SessionStart": [
+    "PreCompact": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/session-start.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/pre-compact.py\"",
+            "timeout": 15,
+            "statusMessage": "Saving state before compaction..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/session-end.py\"",
             "timeout": 10,
-            "statusMessage": "Loading project context..."
+            "statusMessage": "Saving working state..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/precommit-doc-check.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking documentation..."
           }
         ]
       }

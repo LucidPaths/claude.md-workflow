@@ -3,12 +3,15 @@
 Session Start Hook — Auto-orientation for new AI coding sessions
 
 Provides the AI with current project state at session start:
+- Time since last session (helps calibrate how much context to rebuild)
 - Working state from previous sessions (continuity memory)
 - Current git branch and recent commits
 - Uncommitted changes (with commit-count warning)
 - Next steps from ROADMAP.md or TODO.md
+- Post-compaction context restore (reads snapshot saved by pre-compact.py)
 
 Works with any AI coding assistant that supports session hooks.
+Project-agnostic — Python stdlib only.
 
 Adapted from https://github.com/vincitamore/claude-org-template
 Original author: vincitamore (MIT License)
@@ -19,6 +22,7 @@ import sys
 import os
 import re
 import subprocess
+from datetime import datetime
 
 
 def get_project_root():
@@ -43,8 +47,8 @@ def run_git(args, project_root):
 
 
 def get_next_steps(project_root):
-    """Extract next steps from ROADMAP.md or TODO.md."""
-    for filename in ['ROADMAP.md', 'TODO.md']:
+    """Extract next steps from ROADMAP.md, TODO.md, or SESSION_NOTES.md."""
+    for filename in ['ROADMAP.md', 'TODO.md', 'SESSION_NOTES.md']:
         filepath = os.path.join(project_root, filename)
         if not os.path.exists(filepath):
             continue
@@ -52,7 +56,7 @@ def get_next_steps(project_root):
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
             # Try common section headers for next steps
-            for header in ['## Immediate Next Steps', '## Next Steps', '## TODO', '## Tasks']:
+            for header in ['## Immediate Next Steps', '## Next Steps', '## TODO', '## Tasks', '## Next steps']:
                 match = re.search(
                     rf'{re.escape(header)}\n(.*?)(?=\n---|\n## |\Z)',
                     content, re.DOTALL
@@ -66,20 +70,72 @@ def get_next_steps(project_root):
 
 def get_working_state(project_root):
     """Read the working state file if it exists."""
-    state_path = os.path.join(project_root, 'WORKING_STATE.md')
-    if not os.path.exists(state_path):
-        return ""
+    # Check both docs/WORKING_STATE.md and WORKING_STATE.md
+    for rel_path in ['docs/WORKING_STATE.md', 'WORKING_STATE.md']:
+        state_path = os.path.join(project_root, rel_path)
+        if not os.path.exists(state_path):
+            continue
+        try:
+            with open(state_path, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            if not content:
+                continue
+            # Cap at 2000 chars to avoid bloating context
+            if len(content) > 2000:
+                content = content[:2000] + "\n\n*[Working state truncated — read the full file for details]*"
+            return content
+        except Exception:
+            pass
+    return ""
+
+
+def get_state_file_path(project_root):
+    """Find the working state file path."""
+    for rel_path in ['docs/WORKING_STATE.md', 'WORKING_STATE.md']:
+        path = os.path.join(project_root, rel_path)
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def get_time_since_last_session(project_root):
+    """Check when working state was last modified to estimate time gap."""
+    state_path = get_state_file_path(project_root)
+    if not state_path:
+        return None
     try:
-        with open(state_path, 'r', encoding='utf-8') as f:
-            content = f.read().strip()
-        if not content:
-            return ""
-        # Cap at 2000 chars to avoid bloating context
-        if len(content) > 2000:
-            content = content[:2000] + "\n\n*[Working state truncated — read the full file for details]*"
-        return content
+        mtime = os.path.getmtime(state_path)
+        last = datetime.fromtimestamp(mtime, tz=None)
+        now = datetime.now()
+        delta = now - last
+
+        if delta.total_seconds() < 300:  # <5 min
+            return "just now (< 5 min ago)"
+        elif delta.total_seconds() < 3600:  # <1 hr
+            mins = int(delta.total_seconds() / 60)
+            return f"{mins} minutes ago"
+        elif delta.total_seconds() < 86400:  # <1 day
+            hours = int(delta.total_seconds() / 3600)
+            return f"{hours} hour{'s' if hours != 1 else ''} ago"
+        else:
+            days = int(delta.total_seconds() / 86400)
+            return f"{days} day{'s' if days != 1 else ''} ago"
     except Exception:
-        return ""
+        return None
+
+
+def read_and_consume_snapshot(project_root):
+    """Read pre-compaction snapshot if it exists, then delete it."""
+    snapshot_path = os.path.join(project_root, '.claude', 'hook-data', 'pre-compact-snapshot.md')
+    if not os.path.exists(snapshot_path):
+        return None
+    try:
+        with open(snapshot_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        os.remove(snapshot_path)
+        return content if content.strip() else None
+    except Exception:
+        return None
 
 
 def count_uncommitted_files(status_output):
@@ -102,16 +158,26 @@ def main():
     log = run_git(['log', '--oneline', '-5'], project_root)
     status = run_git(['status', '--short'], project_root)
 
+    # Time context
+    time_gap = get_time_since_last_session(project_root)
+
     # Read working state from previous sessions
     working_state = get_working_state(project_root)
 
     # Read next steps from roadmap/todo
     next_steps = get_next_steps(project_root)
 
+    # Check for post-compaction snapshot
+    snapshot = read_and_consume_snapshot(project_root)
+
     # Build orientation context
     lines = []
     lines.append("## Session Orientation")
     lines.append("")
+
+    if time_gap:
+        lines.append(f"**Last session:** {time_gap}")
+        lines.append("")
 
     # Working state first — this is the AI's own continuity
     if working_state:
@@ -149,8 +215,20 @@ def main():
         lines.append("**Next steps:**")
         lines.append(next_steps)
 
+    # Post-compaction restore
+    if snapshot:
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+        lines.append("## CONTEXT RESTORED FROM PRE-COMPACTION SNAPSHOT")
+        lines.append("")
+        lines.append("The following was saved by the PreCompact hook right before")
+        lines.append("context compression. Use it to resume where you left off.")
+        lines.append("")
+        lines.append(snapshot)
+
     lines.append("")
-    lines.append("*Read CLAUDE.md for coding standards. Update WORKING_STATE.md as you work.*")
+    lines.append("*Read CLAUDE.md for coding standards. Update docs/WORKING_STATE.md as you work.*")
 
     output = {"additionalContext": "\n".join(lines)}
     print(json.dumps(output))
