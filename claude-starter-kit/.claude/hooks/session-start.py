@@ -47,8 +47,8 @@ def run_git(args, project_root):
 
 
 def get_next_steps(project_root):
-    """Extract next steps from ROADMAP.md, TODO.md, or SESSION_NOTES.md."""
-    for filename in ['ROADMAP.md', 'TODO.md', 'SESSION_NOTES.md']:
+    """Extract next steps from ROADMAP.md or TODO.md."""
+    for filename in ['ROADMAP.md', 'TODO.md']:
         filepath = os.path.join(project_root, filename)
         if not os.path.exists(filepath):
             continue
