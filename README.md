@@ -21,6 +21,10 @@ claude-starter-kit/
 ├── .claude/
 │   ├── settings.json                  # Hook registration
 │   ├── PR_GUIDELINES.md               # PR description + commit format
+│   ├── rules/
+│   │   ├── coding-standards.md        # 8 universal coding standards
+│   │   ├── traps.md                   # 13 behavioral traps + anti-rationalization
+│   │   └── quality-gate.md            # Pre-submit verification checklist
 │   ├── hooks/
 │   │   ├── session-start.py           # Auto-injects git state at session start
 │   │   ├── maintenance-check.py       # Blocks session end if docs not updated
@@ -34,6 +38,7 @@ claude-starter-kit/
 │       ├── research-then-implement.md # /research-decide — two-phase task pattern
 │       ├── adversarial-review.md      # /adversarial-review — 3-pass bug verification
 │       └── codebase-audit.md          # /codebase-audit — systematic health check
+├── samples/                              # Filled-in examples from real projects
 └── docs/
     ├── PRINCIPLE_LATTICE.md           # 5 axiomatic design principles
     ├── TASK_CONTRACT_TEMPLATE.md      # Per-task acceptance criteria template
@@ -62,8 +67,8 @@ Every decision Claude makes is scored against these. If a choice violates one, i
 
 `CLAUDE.md` is the heavyweight file. It contains:
 
-- **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix ALL instances of a pattern, single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary
-- **10 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, retry loops, verification language, etc.) plus an anti-rationalization table
+- **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix ALL instances of a pattern, single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary (also in `.claude/rules/coding-standards.md`)
+- **13 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, retry loops, verification language, etc.) plus an anti-rationalization table (also in `.claude/rules/traps.md`)
 - **Verification language rule** — forbidden phrases ("should work now", "looks correct") that require evidence from tool calls before any completion claim
 - **Anti-rationalization patterns** — catches the model constructing arguments for why traps don't apply ("this is different because..." = it's not)
 - **Cross-file contract tracking** — a table for tracking values that must stay in sync across files
@@ -129,11 +134,12 @@ Five reusable decision patterns invoked as slash commands:
 First session:
   → session-start.py injects git state + next steps
   → Claude reads CLAUDE.md, fills in [ADAPT] sections
+  → .claude/rules/ files are auto-loaded by Claude Code (no explicit import needed)
   → Future sessions build on that foundation
 
 Every session:
   → Orientation at start (branch, commits, changes, next steps)
-  → Standards enforced during work (8 coding standards, 10 trap interrupts)
+  → Standards enforced during work (8 coding standards, 13 trap interrupts)
   → Documentation check at end (blocks if code changed but docs didn't)
 
 Per task:
@@ -161,7 +167,7 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 ## Benefits for Claude
 
 1. **Immediate orientation** — no wasted turns asking "what are we working on?"
-2. **Behavioral guardrails** — the 10 traps + anti-rationalization catch real failure patterns before they cause damage
+2. **Behavioral guardrails** — the 13 traps + anti-rationalization catch real failure patterns before they cause damage
 3. **Explicit done conditions** — task contracts prevent both under-delivery and over-engineering
 4. **Structured decision-making** — priority hierarchy and research-then-implement prevent flailing
 5. **Session continuity** — `WORKING_STATE.md` bridges context between sessions
@@ -242,7 +248,7 @@ The starter kit assumes a model that can:
 ### Mitigations
 
 **For weaker models (Haiku-class, smaller open-source):**
-- **Reduce CLAUDE.md scope** — 8 standards + 10 traps is too much for smaller context windows. Pick the 3-4 most critical for your project and cut the rest
+- **Reduce CLAUDE.md scope** — 8 standards + 13 traps is too much for smaller context windows. Pick the 3-4 most critical for your project and cut the rest
 - **One repo per session** — multi-repo contexts dramatically increase confusion. Never give a weaker model access to repos it shouldn't touch
 - **Hardcode don'ts in hooks, not instructions** — if a model must never push to main, enforce it with a pre-push git hook, not a markdown rule it can forget. Models forget instructions; git hooks don't
 - **Shorter sessions** — degradation compounds over long conversations. End sessions early and rely on `WORKING_STATE.md` for continuity instead of marathon sessions
@@ -269,6 +275,21 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-03-24 — Modular Architecture & Research-Backed Traps
+
+Extracted universal standards into `.claude/rules/` for auto-loading, added 3 new research-backed traps, enriched principle lattice, added samples directory.
+
+**Added:**
+- `.claude/rules/coding-standards.md` — 8 coding standards extracted for auto-loading by Claude Code
+- `.claude/rules/traps.md` — 13 behavioral traps (3 new: silent-dependency assumptions, stale-context anchoring, premature-abstraction) + anti-rationalization table
+- `.claude/rules/quality-gate.md` — pre-submit verification checklist extracted for auto-loading
+- `samples/` directory — filled-in examples from real projects showing what adapted files look like
+- Modular architecture: CLAUDE.md for project-specific config, `.claude/rules/` for universal standards auto-loaded by Claude Code
+
+**Improved:**
+- `docs/PRINCIPLE_LATTICE.md` — added instantiation guidance and concrete examples for each axiom
+- Trap count increased from 10 to 13 with research-backed additions
 
 ### 2026-03-24 — Session Transcendence & Publish Prep
 

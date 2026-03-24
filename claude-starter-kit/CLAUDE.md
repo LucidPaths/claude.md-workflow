@@ -1,5 +1,7 @@
 # Project Instructions for Claude Code
 
+> Universal rules (coding standards, traps, quality gate) are in `.claude/rules/`. Claude Code loads them automatically.
+
 > **First Session Bootstrap:** When starting your first session on this project, explore the codebase and fill in all `[ADAPT]` sections below. Read the code, understand the structure, document what you find. Future sessions depend on this orientation. The `[ADAPT]` markers are inside HTML comments — replace them with real content.
 
 ---
@@ -53,48 +55,7 @@
 
 ---
 
-## Coding Standards
-
-These are the rules. Each one exists because a real bug prompted it. Follow them exactly.
-
-### 1. Simplicity First
-
-Prefer the simpler approach that already works. Three clear lines beat one clever abstraction. Don't create helpers for one-time operations. If something worked before, check git history before rewriting it.
-
-### 2. Actionable Errors
-
-Every error must say what happened, why, and what the user can do about it. `"Something went wrong"` is itself a bug.
-
-### 3. No Dead Code
-
-If you replace a function, remove the old one. No commented-out code, no unused imports, no `_`-prefixed variables that nothing references. If you add a function, something must call it.
-
-### 4. Fix All Instances
-
-When you find a bug, grep for the same pattern across the entire codebase. Fix every instance, or fix none. One fix creates a false sense of safety. This applies to security lists, validation, naming — everything.
-
-### 5. Single Source of Truth for Cross-File Contracts
-
-If two files must agree on a string, format, or list — there must be one authoritative definition that both reference. Never rely on comments like "must match foo.ts." When you discover a contract, follow this process:
-
-1. **Try to make it a single file** (best — one builder + one parser in the same module)
-2. **If cross-language prevents that**, add explicit cross-reference comments in BOTH files
-3. **Add the contract** to the contracts table in CLAUDE.md
-4. **If security-sensitive**, add a test asserting both sides match
-
-### 6. User-Agent on External APIs
-
-External services block requests without proper User-Agent headers. Always set one.
-
-### 7. Closed By Default
-
-Empty allowlists mean "deny all", not "allow all." This applies to permissions, feature flags, API access — anything where the safe default is "no."
-
-### 8. Both Sides of the Boundary
-
-When logic exists in two places (client + server, two languages, two config files), update both or update neither. One-sided updates create a false sense of safety worse than no update at all.
-
-### Project-Specific Standards
+### Project-Specific Coding Standards
 
 <!-- [ADAPT] Add standards specific to your tech stack as you discover them. Examples:
      - "Always use `const` assertions for TypeScript enums"
@@ -114,61 +75,6 @@ Track contracts here so they don't drift silently. See Coding Standard #5.
      |----------|----------------|--------|-------------|
      | Example: API routes | routes.ts | client.ts | Cross-ref comment |
 -->
-
----
-
-## Session Traps
-
-These are documented bugs in AI assistant behavior. Each one has caused real damage. The word "Stop." is a behavioral interrupt — when you catch yourself thinking the quoted phrase, halt and read the correction.
-
-**Violating the letter of these traps is violating their spirit.** "I'm not optimizing, I'm *improving*" IS Trap 1. The relabeling IS the trap.
-
-### Trap 1: "Let me optimize this"
-**Stop.** Is it slow? Is the user complaining? If not, don't touch it.
-
-### Trap 2: "The error says X, so I'll fix X"
-**Stop.** The error might be downstream of the real bug. Trace backwards to the root cause.
-
-### Trap 3: "I need to rewrite this function"
-**Stop.** Check git history. Maybe a past version worked. Maybe revert, not rewrite.
-
-### Trap 4: "While I'm here, I'll also clean up..."
-**Stop.** Scope creep is the #1 session killer. Do exactly what was asked. If you see something worth improving, mention it — don't do it.
-
-### Trap 5: "I think the user wants..."
-**Stop.** If the request is ambiguous, **ask** — don't infer. The cost of asking is near zero. The cost of building the wrong thing is an entire session.
-
-### Trap 6: "This looks correct to me"
-**Stop.** If you're confirming something looks correct, you need to *prove* it — trace the logic, find a concrete input that exercises the path, verify the output. "Looks correct" without proof is just agreement. See `.claude/skills/adversarial-review.md`.
-
-### Trap 7: "I'll fix this one place"
-**Stop.** The same mistake exists in 3-5 other places — you just haven't hit them yet. Grep for the pattern. Fix every instance or fix none. One fix creates a false sense of safety. (Coding Standard #4 is the rule; this trap catches you in the moment.)
-
-### Trap 8: "I'll add this to the validation list"
-**Stop.** Which list? If validation, security, or permissions exist in two places (client + server, Rust + TypeScript, two config files), you MUST update both. Right now. Before you call it done. Updating one side is worse than updating neither. (Coding Standard #8 is the rule; this trap catches the specific moment you're about to forget the other side.)
-
-### Trap 9: "Let me try one more fix"
-**Stop.** Three failed fixes on the same issue means you're guessing, not debugging. State what you've tried, what failed, and ask the user for direction. Do not attempt a fourth fix.
-
-### Trap 10: "This should work now"
-**Stop.** Prove it. Run the test, show the output, trace the logic. Forbidden phrases: "Should work now", "Looks correct", "I believe this fixes", "Done!", "I'm confident this". Every claim requires evidence from a tool call made AFTER the change.
-
-### Self-Check: Am I Rationalizing?
-
-If you find yourself constructing an argument for why a trap doesn't apply to your current situation, that IS the trap firing. Common rationalization patterns:
-
-| If you're thinking... | You're actually doing... |
-|---|---|
-| "This is different because..." | It's not. Apply the trap. |
-| "I'm not optimizing, I'm *improving*" | Trap 1 with a label swap. |
-| "Just one small refactor..." | Trap 3 unless it's in the task contract. |
-| "I already know the answer" | Then proving it takes 5 seconds. |
-
-### Project-Specific Traps
-
-<!-- [ADAPT] Add traps discovered during development. Format:
-     ### Trap N: "The tempting thing to say"
-     **Stop.** Why it's wrong and what to do instead. -->
 
 ---
 
@@ -220,60 +126,13 @@ Never push without fetching first. Commit messages follow conventional style: `f
 
 ---
 
-## Quality Gate — Before Submitting Changes
+### Project-Specific Traps
 
-This gate exists because broken code has been shipped and marked "DONE" without verification. These rules are non-negotiable.
+<!-- [ADAPT] Add traps discovered during development. Format:
+     ### Trap N: "The tempting thing to say"
+     **Stop.** Why it's wrong and what to do instead. -->
 
-### Core Checks (do ALL, in order)
-
-1. **Test the production path.** Tests must exercise the actual code flow, not a synthetic setup.
-2. **Trace the full data flow.** If A triggers B triggers C, verify A→C end-to-end.
-3. **Run the full test suite.** Test count must not decrease vs. previous runs.
-4. **Grep for the pattern.** Every new pattern gets a codebase-wide search (Coding Standard #4).
-5. **Check the Principle Lattice.** Score your changes against all 5 principles in `docs/PRINCIPLE_LATTICE.md`. This is not decorative — enforce it actively on every change, or the principles become wallpaper. Ask yourself each one explicitly: Modular? Simple? Errors visible? Pattern fixed everywhere? Secrets safe?
-6. **No dead code.** If you added a function, something must call it (Coding Standard #3).
-7. **Check for regressions.** `git diff` and verify you didn't break existing contracts.
-8. **Stay in scope.** No unasked-for refactoring, no bonus features (Trap #4).
-
-### Verification Language Rule
-
-**Unverified claims are lies, not estimates.** No completion claims without fresh verification evidence.
-
-```
-BEFORE claiming any status:
-1. IDENTIFY — What command proves this claim?
-2. RUN — Execute the command (fresh, complete, in this response)
-3. READ — Full output, check exit code, count failures
-4. REPORT — State claim WITH the evidence: "Ran X → Y → [claim]"
-
-Skip any step = the claim is unverified.
-```
-
-**Forbidden phrases** (if you catch yourself typing these, STOP and run the command):
-- "Should work now" / "This should fix it"
-- "Looks correct" / "Seems right"
-- "Done!" / "Fixed!" / "All good!" (before verification)
-- "I'm confident this works" (confidence ≠ evidence)
-- "I believe this fixes it"
-
-### Rationalization Patterns
-
-Every shipped bug was preceded by a thought that felt reasonable. If you catch yourself thinking any of these, you are about to repeat history:
-
-| Rationalization | Defense |
-|---|---|
-| "I tested it locally and it works" | Test the ACTUAL deployment/production path, not dev setup. |
-| "`let _ =` / `catch {}` is fine here" | If the operation failing breaks the feature, handle the error. |
-| "I'll wire up the caller later" | If nothing calls it NOW, it's dead code. Wire it or don't write it. |
-
-### Conditional Checks
-
-9. Cross-file contract added? → Single source of truth or cross-ref in BOTH files (Coding Standard #5)
-10. Touched a boundary in two places? → Updated both sides (Coding Standard #8)
-11. Added a public function? → Something calls it and it's documented
-12. Spawned a process? → Cleanup on exit
-
-### Lessons Learned
+### Quality Gate — Lessons Learned
 
 <!-- [ADAPT] Track bugs that prompted rules. This is the project's immune system.
 

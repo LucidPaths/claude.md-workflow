@@ -118,6 +118,20 @@ if os.path.isfile(maint_check):
 else:
     test("maintenance-check.py exists", False)
 
+# --- Test 6: .claude/rules/ directory exists and contains .md files ---
+print("\n.claude/rules/")
+rules_dir = os.path.join(STARTER_KIT_DIR, ".claude", "rules")
+test(".claude/rules/ directory exists", os.path.isdir(rules_dir))
+if os.path.isdir(rules_dir):
+    md_files = [f for f in os.listdir(rules_dir) if f.endswith(".md")]
+    test("contains .md files", len(md_files) > 0, f"found {len(md_files)} .md files")
+    for expected in ["coding-standards.md", "traps.md", "quality-gate.md"]:
+        test(
+            f"{expected} exists",
+            expected in md_files,
+            f"not found in {md_files}",
+        )
+
 # --- Summary ---
 print(f"\n{'=' * 40}")
 total = passed + failed
