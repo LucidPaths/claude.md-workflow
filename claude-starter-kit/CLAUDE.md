@@ -307,7 +307,7 @@ Every shipped bug was preceded by a thought that felt reasonable. If you catch y
 
 ## Session Continuity
 
-Maintain a persistent state file at `WORKING_STATE.md` in the project root. See `docs/WORKING_STATE_TEMPLATE.md` for the template.
+Maintain a persistent state file at `docs/WORKING_STATE.md` (or `WORKING_STATE.md` in the project root). See `docs/WORKING_STATE_TEMPLATE.md` for the template.
 
 **On session start:** Read `WORKING_STATE.md` before doing anything else. It contains your own continuity — active tasks, things you learned, mistakes to avoid, ideas you parked.
 
