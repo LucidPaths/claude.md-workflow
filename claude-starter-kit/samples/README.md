@@ -10,7 +10,7 @@ These examples are extracted from a real 39K-line Tauri desktop application (Rus
 |------|---------------------|
 | [CLAUDE-md-filled-example.md](CLAUDE-md-filled-example.md) | A condensed CLAUDE.md (~150 lines vs the original 918). Shows filled-in project overview, directory tree, development guidelines, cross-file contracts table, key files table, current state tracker, architecture patterns, session traps, and lessons learned. |
 | [WORKING-STATE-filled-example.md](WORKING-STATE-filled-example.md) | A WORKING_STATE.md mid-project — active multi-phase task, conversation context with user intent, accumulated learnings, corrections (mistakes caught by user), self-improvement observations, deferred ideas, and codebase insights. |
-| [PRINCIPLE-LATTICE-filled-example.md](PRINCIPLE-LATTICE-filled-example.md) | A principle lattice with 5 principles, each having 3-5 concrete instantiations proving the principle lives in code. Shows the pattern of axiom → instantiations → demands. |
+| [PRINCIPLE-LATTICE-filled-example.md](PRINCIPLE-LATTICE-filled-example.md) | A principle lattice with 5 principles, each having 3-5 concrete instantiations proving the principle lives in code. In kit v2 the principles are condensed into `.claude/rules/core.md`; this sample shows the expanded per-project form for teams that want a full lattice document. |
 
 ## How to Use These
 

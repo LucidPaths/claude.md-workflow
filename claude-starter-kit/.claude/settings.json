@@ -17,46 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/maintenance-check.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/change-check.py\"",
             "timeout": 10,
-            "statusMessage": "Checking if docs need updating..."
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/pre-compact.py\"",
-            "timeout": 15,
-            "statusMessage": "Saving state before compaction..."
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/session-end.py\"",
-            "timeout": 10,
-            "statusMessage": "Saving working state..."
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/precommit-doc-check.py\"",
-            "timeout": 10,
-            "statusMessage": "Checking documentation..."
+            "statusMessage": "Checking for undocumented changes..."
           }
         ]
       }

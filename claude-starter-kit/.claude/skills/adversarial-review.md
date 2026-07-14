@@ -1,62 +1,53 @@
-# /adversarial-review — Three-Pass Verification
+# /adversarial-review — Isolated Three-Stage Review
 
-Exploit sycophancy bias to find real bugs by running opposing review passes.
+Independent, oppositely-biased perspectives triangulate real bugs. The v1
+version of this skill ran all three passes in one context — which let pass 2
+anchor on pass 1's reasoning, quietly defeating the purpose. The isolation is
+now structural: later stages receive **claims only**, never earlier stages'
+reasoning.
 
-## Instructions
+## Stage 1 — Finders (parallel, mutually blind)
 
-When this skill is invoked, run three sequential analysis passes on the specified code:
+Spawn 3 subagents **in parallel**, each given the same scope (files or diff)
+and a different lens:
 
-### Pass 1: Bug Hunter (overclaim bias)
+1. **Correctness** — logic errors, edge cases, off-by-ones, broken contracts
+2. **Security & failure paths** — injection, authz gaps, swallowed errors, leaks
+3. **Data flow & state** — races, stale state, one-sided boundary updates
 
-Adopt an aggressive bug-finding stance. Score yourself:
-- +1 for each low-impact issue found
-- +5 for each medium-impact issue
-- +10 for each critical issue (security, data loss, crash)
+Each finder returns findings as bare claims:
+`file:line · severity (low/medium/critical) · one-sentence defect · concrete failure scenario (inputs/state → wrong outcome)`.
 
-Maximize your score. Report every potential issue with:
-- **File and line**
-- **Severity** (low / medium / critical)
-- **Description** of what could go wrong
-- **Proof** — a concrete scenario or input that triggers it
+Finders never see each other's output. A finding without a concrete failure
+scenario is not a finding.
 
-This pass intentionally overclaims. That's the point — cast a wide net.
+## Stage 2 — Skeptics (per finding, claim-only)
 
-### Pass 2: Adversarial Disprover (underclaim bias)
+Deduplicate findings by file+line first — otherwise rejected findings resurface.
 
-Now switch roles. For each issue from Pass 1, try to **disprove** it:
-- Can you show the issue is actually handled elsewhere?
-- Is the scenario actually unreachable given the code's constraints?
-- Does a framework/library guarantee prevent this?
+For each surviving finding, spawn a skeptic subagent that receives **only** the
+claim and access to the code — not the finder's reasoning. Its instruction:
 
-Score yourself:
-- +original score for each correct disproval (the issue was a false positive)
-- -2x original score for each wrong disproval (the issue is real and you dismissed it)
+> Try to refute this claim. Check whether the scenario is unreachable, handled
+> elsewhere, or guaranteed impossible by a framework/library. Default to
+> **refuted** if the failure scenario cannot actually occur as described.
 
-Maximize your score. Be rigorous — only disprove what you can actually disprove.
+For a thorough review, use 2-3 skeptics per finding with distinct angles
+(reachability, existing handling, framework guarantees) and kill the finding on
+majority refutation.
 
-### Pass 3: Final Verdict
+## Stage 3 — Adjudicate (you, in this context)
 
-For each issue, classify based on both passes:
+A finding survives only if the skeptic(s) failed to refute it. For each
+survivor report: file:line, severity, the defect, the failure scenario, and the
+skeptic's strongest failed refutation attempt (this is the evidence the bug is
+real). Rank by severity. Report **only** survivors — a clean report with three
+real bugs beats a padded report with twelve maybes.
 
-| Issue | Bug Hunter said | Disprover said | Verdict |
-|-------|----------------|----------------|---------|
-| #1    | Critical: X    | Disproved: Y handles it | **False positive** / **Confirmed** |
+## Rules
 
-Output a clean final report with only confirmed issues, ranked by severity.
-
-### Usage
-
-```
-/adversarial-review [file or directory or description of what to review]
-```
-
-Works best on:
-- Auth flows and security-sensitive code
-- Data processing pipelines
-- Error handling paths
-- Code that was recently refactored
-- PR review (compare changed files)
-
-### Why This Works
-
-Models are sycophantic — they find what they think you want. Pass 1 exploits this to overclaim bugs. Pass 2 exploits it to overclaim disprovals. Pass 3 adjudicates. The intersection of "Bug Hunter couldn't miss it" and "Disprover couldn't kill it" is remarkably accurate.
+- **Never run all three stages in a single context.** The anchoring you'd
+  introduce is exactly what this process exists to remove.
+- Best on: auth flows, data pipelines, error paths, fresh refactors, PR diffs.
+- After confirming any bug, grep for the same pattern codebase-wide
+  (Standard 4) before reporting the fix scope.
