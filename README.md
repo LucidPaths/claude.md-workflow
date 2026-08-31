@@ -59,14 +59,23 @@ The two-phase research pattern that used to be `/research-decide` is now a refer
 This is the hardest-won lesson in the repo, and it applies to any prompt-based framework
 including this one.
 
-**Instruction adherence decays, and more prose makes it worse.** This is not a hunch — it is
-[documented guidance](https://code.claude.com/docs/en/memory): *"target under 200 lines per CLAUDE.md
-file. Longer files consume more context and reduce adherence."* The same page notes that instruction
-files are context, not enforced configuration, and that contradictory rules get resolved arbitrarily.
+**Instruction adherence decays, and more prose makes it worse.**
 
-Running agent fleets, the shape you see matches that: a rule stated in prose holds best right after
-it is read and worst after a resume or deep into a long session. Adding another paragraph telling the
-model to try harder does not fix it.
+Two arguments get conflated here and only one of them still matters. The **capacity** argument — long
+instructions eat your context budget — is largely dead. Against a million-token window a 16KB
+instruction set is a rounding error. **Do not trim your rules to save tokens.**
+
+The **attention** argument survives, because a bigger window did not make attention uniform. The
+[memory docs](https://code.claude.com/docs/en/memory) are blunt about the status of these files: they
+are context, not enforced configuration, and where two rules contradict, the model "may pick one
+arbitrarily." Operating agent fleets, the shape matches — a rule holds best right after it is read
+and worst after a resume or deep into a long session, and sustained adherence to one naming
+convention measured closer to half than to the ninety-plus percent the instruction implied, on
+machines with context to spare. That is one operator's observation rather than a benchmark, but it
+is the number that changed how this repo is written.
+
+So the lesson is not "write less to save room." It is that **a rule stated twice is not stated twice
+as strongly**, and another paragraph telling the model to try harder buys nothing.
 
 What works is making non-compliance **visible in the output**. Not "verify your claims," but
 *"end with a table of every claim and the source you read for it."* An instruction the model can
@@ -389,9 +398,11 @@ are explicit that longer instructions reduce adherence, so the fix was removal, 
 - **One rationalization table, not two.** `quality-gate.md` and `traps.md` each carried a
   "you're rationalizing" table with different rows and the same job, both loaded every session.
   Merged into the single table in `traps.md`, which is where behavioural catches belong
-- **The Enforcement Problem now cites its source.** It previously asserted an unfalsifiable fleet
-  measurement; it now quotes the documented guidance and presents the fleet observation as an
-  observation. The repo's own `/unverified` skill exists to catch exactly that kind of claim
+- **The Enforcement Problem separates two arguments that were being conflated.** The capacity
+  argument (long instructions eat your context budget) is obsolete against a million-token window and
+  is now explicitly disclaimed — *do not trim rules to save tokens*. The attention argument survives
+  and is what the section now rests on, with the fleet number presented as one operator's observation
+  rather than as a benchmark. The repo's own `/unverified` exists to catch the stronger phrasing
 
 **Deliberately not done:** `paths:` frontmatter was *not* retrofitted onto the three shipped rules.
 Coding standards, traps and the quality gate apply to any file in any language, so scoping them

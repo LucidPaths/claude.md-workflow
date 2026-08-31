@@ -6,8 +6,9 @@
 #
 # Loaded automatically by Claude Code. Apply to every project.
 #
-# Eight, deliberately. A list you can hold in your head fires; a list you skim
-# does not. Each trap below covers one distinct failure mode — where two traps
+# Eight, deliberately — not because a shorter list is easier to remember (the
+# whole file is in context either way), but because a rule stated twice is not
+# stated twice as strongly. Each trap covers one distinct failure mode; where two
 # were the same mistake on different axes, they are merged rather than split.
 
 **Violating the letter of these traps is violating their spirit.** "I'm not optimizing, I'm *improving*" IS Trap 1. The relabeling IS the trap.
