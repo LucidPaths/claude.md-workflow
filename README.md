@@ -65,14 +65,19 @@ Two arguments get conflated here and only one of them still matters. The **capac
 instructions eat your context budget — is largely dead. Against a million-token window a 16KB
 instruction set is a rounding error. **Do not trim your rules to save tokens.**
 
-The **attention** argument survives, because a bigger window did not make attention uniform. The
-[memory docs](https://code.claude.com/docs/en/memory) are blunt about the status of these files: they
-are context, not enforced configuration, and where two rules contradict, the model "may pick one
-arbitrarily." Operating agent fleets, the shape matches — a rule holds best right after it is read
-and worst after a resume or deep into a long session, and sustained adherence to one naming
-convention measured closer to half than to the ninety-plus percent the instruction implied, on
-machines with context to spare. That is one operator's observation rather than a benchmark, but it
-is the number that changed how this repo is written.
+The argument that survives is **structural**, which is why it is worth building on: it does not
+depend on how well any particular model follows instructions, so it does not expire when the models
+get better. The [memory docs](https://code.claude.com/docs/en/memory) state the status of these files
+plainly — they are *context, not enforced configuration*, and where two rules contradict, the model
+"may pick one arbitrarily." **Nothing checks compliance.** That is as true at 99% adherence as at 50%:
+you cannot tell from the output which one you got.
+
+Underneath that sits a failure that is easier to miss, and worth checking before you blame the model.
+**An instruction can be absent without anyone noticing.** A harness that injects its rules on session
+start but not on resume runs half its sessions with the rule simply not present — and the transcripts
+look identical either way, so the shortfall reads as the model ignoring you. That exact plumbing bug
+is what a "roughly half compliance" number turned out to be in one real fleet. Before concluding a
+model disregards your rule, verify the rule was in the context where it had to fire.
 
 So the lesson is not "write less to save room." It is that **a rule stated twice is not stated twice
 as strongly**, and another paragraph telling the model to try harder buys nothing.
@@ -398,11 +403,13 @@ are explicit that longer instructions reduce adherence, so the fix was removal, 
 - **One rationalization table, not two.** `quality-gate.md` and `traps.md` each carried a
   "you're rationalizing" table with different rows and the same job, both loaded every session.
   Merged into the single table in `traps.md`, which is where behavioural catches belong
-- **The Enforcement Problem separates two arguments that were being conflated.** The capacity
-  argument (long instructions eat your context budget) is obsolete against a million-token window and
-  is now explicitly disclaimed — *do not trim rules to save tokens*. The attention argument survives
-  and is what the section now rests on, with the fleet number presented as one operator's observation
-  rather than as a benchmark. The repo's own `/unverified` exists to catch the stronger phrasing
+- **The Enforcement Problem no longer rests on an adherence statistic.** The capacity argument
+  (long instructions eat your context budget) is obsolete against a million-token window and is now
+  explicitly disclaimed — *do not trim rules to save tokens*. The section rests instead on the
+  structural fact that nothing checks compliance, which holds at any adherence rate and does not
+  expire as models improve. A "roughly half compliance" figure was cut entirely: on inspection it
+  measured a harness injecting its rules on session start but not on resume, so the rule was absent
+  rather than ignored. That distinction is now the section's second paragraph
 
 **Deliberately not done:** `paths:` frontmatter was *not* retrofitted onto the three shipped rules.
 Coding standards, traps and the quality gate apply to any file in any language, so scoping them
