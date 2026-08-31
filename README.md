@@ -93,7 +93,21 @@ what it deliberately did not build. A skipped block is obvious. A skipped intent
 
 The strongest version is a check outside the model entirely: a git hook, a CI job, a test.
 **If a model must never do X, enforce X with tooling, not with a markdown rule it can forget.**
-That is what `.claude/hooks/` and `tests/test_hooks.py` are for.
+
+The kit ships this rather than just recommending it:
+
+```bash
+bash guards/install-guards.sh            # protect main + master
+bash guards/install-guards.sh main dev   # or name your own
+```
+
+That installs a **pre-push** hook refusing pushes to protected branches and a **pre-commit** hook
+refusing commits that touch paths listed in `.claude/protected-paths.txt`. The overrides are
+environment variables a human types — `ALLOW_PROTECTED_PUSH=1`, `ALLOW_PROTECTED_PATHS=1` — not a
+phrase a model can emit mid-session, which is the whole point. Re-running is safe, and a pre-existing
+hook the script did not install is reported and left alone rather than clobbered.
+
+A rule in `rules/` is advice. A hook in `.git/hooks` is a wall.
 
 ## What This Is
 

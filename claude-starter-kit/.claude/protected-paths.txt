@@ -1,0 +1,13 @@
+# Paths the pre-commit guard refuses to let you commit.
+#
+# One path prefix per line; a prefix matches the path itself and everything
+# under it. Blank lines and # comments are ignored.
+#
+# Empty by default (closed by default means nothing is protected until you say
+# so — a guard you did not choose is a guard you will override on reflex).
+# Uncomment or add the paths where an accidental edit would actually hurt:
+#
+# src/contracts
+# infra/k8s
+# .github/workflows
+# migrations

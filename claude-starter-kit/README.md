@@ -38,7 +38,9 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `docs/research-then-implement.md` | Reference | Two-phase pattern: research, write a decision, then implement with fresh context |
 | `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
 | `samples/` | Reference | Filled-in examples from real projects showing what adapted files look like |
-| `tests/test_hooks.py` | Fixed | Validates that hook scripts parse and run without errors |
+| `guards/install-guards.sh` | Fixed | Installs pre-push / pre-commit git hooks — hard blocks a model cannot talk its way past |
+| `.claude/protected-paths.txt` | Template | Path prefixes the pre-commit guard refuses (ships empty) |
+| `tests/test_hooks.py` | Fixed | Validates that hooks parse, emit the current schema, and that skills are registerable |
 
 ### Modular Architecture
 
@@ -124,6 +126,29 @@ ship a skill that cannot be invoked.
 The `description` is the most important line in the file: it is what the model reads when deciding
 whether the skill applies. Write it as a trigger condition ("Use when the user runs X or asks Y"),
 not as a summary.
+
+## Hard guards (optional, recommended)
+
+Rules and hooks shape behaviour; they do not enforce it. For the things that must never happen,
+install git-level guards:
+
+```bash
+bash guards/install-guards.sh            # protect main + master
+bash guards/install-guards.sh main dev   # or name your own branches
+```
+
+- **pre-push** refuses pushes to protected branches
+- **pre-commit** refuses commits touching prefixes listed in `.claude/protected-paths.txt`
+  (ships empty — nothing is protected until you choose)
+
+Overrides are deliberate human acts, not model-emittable text:
+
+```bash
+ALLOW_PROTECTED_PUSH=1 git push ...
+ALLOW_PROTECTED_PATHS=1 git commit ...
+```
+
+Safe to re-run. A pre-existing hook this script did not install is reported and left untouched.
 
 ## Requirements
 
