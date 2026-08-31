@@ -24,7 +24,7 @@
 **Stop.** If the request is ambiguous, **ask** — don't infer. The cost of asking is near zero. The cost of building the wrong thing is an entire session.
 
 ### Trap 6: "This looks correct to me"
-**Stop.** If you're confirming something looks correct, you need to *prove* it — trace the logic, find a concrete input that exercises the path, verify the output. "Looks correct" without proof is just agreement. See `.claude/skills/adversarial-review.md`.
+**Stop.** If you're confirming something looks correct, you need to *prove* it — trace the logic, find a concrete input that exercises the path, verify the output. "Looks correct" without proof is just agreement. Run `/adversarial-review`.
 
 ### Trap 7: "I'll fix this one place"
 **Stop.** The same mistake exists in 3-5 other places — you just haven't hit them yet. Grep for the pattern. Fix every instance or fix none. One fix creates a false sense of safety. (Coding Standard #4 is the rule; this trap catches you in the moment.)

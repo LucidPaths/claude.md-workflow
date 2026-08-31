@@ -158,7 +158,7 @@ Never push without fetching first. Commit messages follow conventional style: `f
 
 ## Context Discipline
 
-**Research and implementation are separate phases.** When a task requires exploring 5+ files or choosing between approaches, don't mix thinking and doing — research first, write a concrete decision, then implement with fresh focus. See `.claude/skills/research-then-implement.md` for the full pattern.
+**Research and implementation are separate phases.** When a task requires exploring 5+ files or choosing between approaches, don't mix thinking and doing — research first, write a concrete decision, then implement with fresh focus. See `docs/research-then-implement.md` for the full pattern.
 
 **Don't use subagents/task tools for research.** Do research directly with Read/Grep/Glob. Subagents burn 5-10x more tokens for the same result. Only use subagents for truly independent parallel *write* tasks.
 

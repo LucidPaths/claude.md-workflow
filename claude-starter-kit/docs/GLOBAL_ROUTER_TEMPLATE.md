@@ -60,11 +60,15 @@ Before every action: **"Was I asked to do this?"**
 | Working state template | Creating WORKING_STATE.md | `docs/WORKING_STATE_TEMPLATE.md` |
 | Task contract template | Starting complex work | `docs/TASK_CONTRACT_TEMPLATE.md` |
 | Role template | Setting up role-based workflow | `docs/ROLE_TEMPLATE.md` |
-| Structured reasoning | Complex decisions | `.claude/skills/structured-reasoning.md` |
-| Adversarial review | Code review | `.claude/skills/adversarial-review.md` |
-| Research then implement | Exploration tasks | `.claude/skills/research-then-implement.md` |
-| Project status | Quick state check | `.claude/skills/project-status.md` |
-| Codebase audit | Health check | `.claude/skills/codebase-audit.md` |
+| Adversarial review | Before merging a diff | `/adversarial-review` |
+| Proof | Migrations, dedups, "is it really done?" | `/proof` |
+| Rigor | A reasoning problem with no artifact yet | `/rigor` |
+| Paranoia | End of a long session, before a handoff | `/paranoia` |
+| Scalpel | When the right size of the fix is the question | `/scalpel` |
+| Unverified | Claims built from incomplete input | `/unverified` |
+| Shippable | Before submitting, demoing, handing over | `/shippable` |
+| Goal loop | Closing a set of gaps end to end | `/goal-loop` |
+| Research then implement | Exploration tasks | `docs/research-then-implement.md` |
 
 ---
 

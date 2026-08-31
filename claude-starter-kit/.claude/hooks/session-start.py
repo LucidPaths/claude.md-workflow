@@ -30,8 +30,18 @@ def get_project_root():
     env_root = os.environ.get('CLAUDE_PROJECT_DIR')
     if env_root and os.path.isdir(env_root):
         return env_root
-    # Fallback: .claude/hooks/session-start.py → project root is 3 levels up
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # Try git root (works when inside a repo, regardless of subdirectory)
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+    # Fallback: cwd (Claude Code sets this to the project directory)
+    return os.getcwd()
 
 
 def run_git(args, project_root):
@@ -230,7 +240,12 @@ def main():
     lines.append("")
     lines.append("*Read CLAUDE.md for coding standards. Update docs/WORKING_STATE.md as you work.*")
 
-    output = {"additionalContext": "\n".join(lines)}
+    output = {
+        "hookSpecificOutput": {
+            "hookEventName": "SessionStart",
+            "additionalContext": "\n".join(lines)
+        }
+    }
     print(json.dumps(output))
 
 

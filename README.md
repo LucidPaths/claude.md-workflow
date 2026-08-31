@@ -2,7 +2,12 @@
 
 A governance framework for AI-assisted development with [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Drop it into any repo to turn Claude from a raw coding assistant into a disciplined, self-auditing development agent.
 
-Distilled from battle-tested patterns in the [HIVE](https://github.com/LucidPaths/HiveMind) project.
+Distilled from battle-tested patterns in the [HIVE](https://github.com/LucidPaths/HiveMind) project, and from running these disciplines daily on production infrastructure.
+
+**Two ways to use this repo, and both are first-class:**
+
+1. **Install it.** Drop `claude-starter-kit/` into your repo root and it works - hooks, rules, skills, templates.
+2. **Cannibalise it.** Point your agent at this repo and take the parts you want. Most of the value is in the *ideas*, and they transfer to any agent framework. Nothing here is load-bearing on the rest.
 
 ---
 
@@ -32,16 +37,20 @@ claude-starter-kit/
 │   │   ├── session-end.py             # Auto-persists working state on exit
 │   │   ├── precommit-doc-check.py     # Blocks commits missing doc updates
 │   │   └── _state_utils.py            # Shared utilities for state hooks
-│   └── skills/
-│       ├── structured-reasoning.md    # Decision framework + priority hierarchy
-│       ├── project-status.md          # /project-status — quick state overview
-│       ├── research-then-implement.md # /research-decide — two-phase task pattern
-│       ├── adversarial-review.md      # /adversarial-review — 3-pass bug verification
-│       └── codebase-audit.md          # /codebase-audit — systematic health check
+│   └── skills/                        # folder format - a flat .md never registers
+│       ├── adversarial-review/SKILL.md
+│       ├── proof/SKILL.md
+│       ├── rigor/SKILL.md
+│       ├── paranoia/SKILL.md
+│       ├── scalpel/SKILL.md
+│       ├── unverified/SKILL.md
+│       ├── shippable/SKILL.md
+│       └── goal-loop/SKILL.md
 ├── samples/                              # Filled-in examples from real projects
 └── docs/
     ├── PRINCIPLE_LATTICE.md           # 5 axiomatic design principles
     ├── TASK_CONTRACT_TEMPLATE.md      # Per-task acceptance criteria template
+    ├── research-then-implement.md      # Two-phase task pattern (reference)
     ├── WORKING_STATE_TEMPLATE.md      # Session-transcending memory template
     ├── ROLE_TEMPLATE.md               # Role-based workflow template
     └── GLOBAL_ROUTER_TEMPLATE.md      # Thin CLAUDE.md router template
@@ -114,15 +123,24 @@ Six lifecycle hooks registered in `.claude/settings.json`:
 
 ### 4. Skills (the frameworks)
 
-Five reusable decision patterns invoked as slash commands:
+Eight invocable disciplines. This is the part most worth stealing.
 
-| Skill | Command | What It Does |
-|-------|---------|--------------|
-| **Structured Reasoning** | *(reference)* | Priority hierarchy (correctness > security > performance > maintainability > elegance), scope guard, stuck protocol, decomposition triggers |
-| **Project Status** | `/project-status` | Quick state overview from ROADMAP, TODO, git log, uncommitted changes, and health checks |
-| **Research Then Implement** | `/research-decide` | Two-phase pattern: research and write a decision file first, then implement with fresh context. Prevents context bloat from mixing exploration and coding |
-| **Adversarial Review** | `/adversarial-review` | Three-pass code review: Pass 1 aggressively hunts bugs (overclaims), Pass 2 tries to disprove each finding (overclaims disprovals), Pass 3 adjudicates. The intersection is accurate. Exploits model sycophancy as a feature |
-| **Codebase Audit** | `/codebase-audit` | Systematic health check: silent failures, dead code, contract drift, security gaps. Produces actionable findings, not vague warnings |
+Each lives at `.claude/skills/<name>/SKILL.md`. **A flat `.md` directly inside `skills/` is never
+registered** - it silently does nothing, forever. `tests/test_hooks.py` fails if one appears.
+
+| Skill | The one idea in it |
+|-------|--------------------|
+| `/adversarial-review` | Run two passes that overclaim in *opposite* directions, then adjudicate. The intersection of "the bug hunter couldn't miss it" and "the disprover couldn't kill it" is remarkably accurate. |
+| `/proof` | "The check passed" is not "the thing is true." Most data disasters aren't a missing check - they're a check that silently lied. Prove your checker *can* fail before you trust it passing. |
+| `/rigor` | Keep verified, inferred and assumed separate all the way into the output. Confidence is earned per claim, not applied in bulk. |
+| `/paranoia` | "I checked it" exhausts nothing. A *class* of defect is exhausted per document, per tree. Done is when finds decay to cosmetics across a fully swept artifact x class matrix. |
+| `/scalpel` | Machinery scales with evidence of need, never with the gravity of the invocation. Full imaging, smallest incision. |
+| `/unverified` | Systems fail by being confidently *complete* - filling the half of the answer they don't have, in the same voice, with no seam a reader can see. Go find where the uncertainty died. |
+| `/shippable` | There is the work you did and the work that *arrives*. The gap is invisible to exactly one person: you. Become the stranger with an empty machine and twenty minutes. |
+| `/goal-loop` | Every gap declares its terminating proof *before* work starts. "The agent said so" and "looks right" never count. |
+
+The two-phase research pattern that used to be `/research-decide` is now a reference doc at
+`docs/research-then-implement.md` - it is a way of working, not something you invoke.
 
 ## How It Works
 
@@ -147,6 +165,29 @@ Per task:
   → Task is NOT done until every criterion is verifiably satisfied
 ```
 
+## The Enforcement Problem
+
+This is the hardest-won lesson in the repo, and it applies to any prompt-based framework
+including this one.
+
+**Instruction adherence decays.** Measured on a real agent fleet, a rule stated in prose held
+roughly half the time over sustained work - strongest right after it was read, weakest after a
+resume or a long session. Adding more prose does not fix it. It makes it worse, because a longer
+document is read less carefully.
+
+What works is making non-compliance **visible in the output**. Not "verify your claims," but
+*"end with a table of every claim and the source you read for it."* An instruction the model can
+satisfy by asserting it complied is not enforcement. An instruction that requires a filled-in
+artifact is.
+
+Every skill here ends with a required closing block for exactly this reason - `/proof` must print
+its invariant, population, command, fail-proof and what it merely trusted; `/scalpel` must print
+what it deliberately did not build. A skipped block is obvious. A skipped intention is not.
+
+The strongest version is a check outside the model entirely: a git hook, a CI job, a test.
+**If a model must never do X, enforce X with tooling, not with a markdown rule it can forget.**
+That is what `.claude/hooks/` and `tests/test_hooks.py` are for.
+
 ## Why It Works
 
 The kit is **self-reinforcing**. Each component addresses a specific failure mode:
@@ -156,9 +197,13 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 | Claude drifts from project context | `[ADAPT]` sections in CLAUDE.md that grow with the project |
 | Session starts cold, wastes turns exploring | session-start.py auto-injects git state |
 | Documentation rots, future sessions hallucinate | maintenance-check.py blocks session end until docs updated |
-| Scope creep ("while I'm here, I'll also...") | Trap #4 + scope guard in structured-reasoning |
-| Sycophantic code review ("this looks correct") | Adversarial 3-pass review exploits the bias |
-| Context bloat from mixing research and coding | research-then-implement separates phases |
+| Scope creep ("while I'm here, I'll also...") | Trap #4 + `/scalpel` sizing the cut to the evidence |
+| Sycophantic code review ("this looks correct") | `/adversarial-review` exploits the bias against itself |
+| Context bloat from mixing research and coding | `docs/research-then-implement.md` separates the phases |
+| A passing check that could never have failed | `/proof` - fail-proof the checker before trusting it |
+| Confident output where the honest answer is "I don't know" | `/unverified` - the five seams where uncertainty dies |
+| Work that only runs on the author's machine | `/shippable` - the cold-clone test |
+| A long session accumulating silent drift | `/paranoia` - one defect class per pass, to convergence |
 | Single-instance fix creates false safety | Coding Standard #4: fix ALL instances or none |
 | Cross-file values drift silently | Cross-file contracts table + Coding Standard #5 |
 | Vague acceptance criteria, gold-plating | Task contract template with explicit done conditions |
@@ -222,6 +267,11 @@ The kit enables a powerful pattern: **multiple Claude sessions working in parall
 
 This is essentially **agentic MapReduce** — map work across N isolated sessions, reduce in an orchestrator session. The sessions don't need to talk to each other. They share the same constitution, so their outputs converge.
 
+**`/goal-loop` is the disciplined version of this pattern**, and if you steal one thing, steal that
+one. It adds what the diagram is missing: the orchestrator locks every design decision *before*
+dispatch, never accepts an agent's self-report as evidence, re-runs every gate personally, and
+terminates only when each gap has a pre-declared machine-checkable proof.
+
 ## Edge Cases: Model Degradation and Weaker Models
 
 > **Real-world observation:** Even top-tier models (Opus-class) exhibit behavioral degradation during long sessions — contradicting themselves, losing track of what they did, giving confidently wrong answers, and violating explicit instructions they acknowledged moments earlier. This section exists because it happened in practice while building this very kit.
@@ -244,6 +294,7 @@ The starter kit assumes a model that can:
 | **Action amnesia** | Model loses track of what it actually did vs. planned to do | Claims no commits were made when git log shows otherwise |
 | **Sycophantic self-correction** | When challenged, model agrees with the user's framing even if the original answer was correct | Changes a right answer to a wrong one because the user sounded upset |
 | **Instruction bleed** | Instructions for repo A get applied to repo B in multi-repo contexts | Branch rules for one repo leaking into operations on another |
+| **Broken self-verification** | Model writes a check to validate its own work, the check is malformed, and the meaningless result is reported as a finding | A grep whose pattern never expanded returns "0 matches" and is read as "clean" |
 
 ### Mitigations
 
@@ -266,6 +317,12 @@ The starter kit assumes a model that can:
 
 If a model says "I didn't push anything," check `git log --remotes`. If it says "I only modified one file," check `git diff --stat`. The model's self-report is the least reliable source of truth in any session — the git history is the actual record.
 
+And the corollary, which is easier to miss: **verify the verifier.** A malformed check produces a
+confident, meaningless result - an empty grep from a pattern that never expanded looks exactly like
+a clean result. Before trusting that a check passed, feed it a known-bad case and watch it catch.
+That discipline is `/proof`, and it applies to a model checking its own work as much as to any
+migration.
+
 This applies to all models, all tiers, all context lengths. It's not a weakness of small models — it's a property of LLMs that surfaces more often under load.
 
 ## Requirements
@@ -275,6 +332,40 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-08-31 — Skills Refresh
+
+Five months on, the skills layer had fallen behind Claude Code and behind the practice the kit was
+distilled from. The rules, hooks and templates added in March were untouched by this pass.
+
+**Fixed:**
+- **Skills were flat `.md` files in `skills/`, which Claude Code does not register.** All five
+  silently did nothing when invoked. Verified against a live session's registered-skill listing.
+  `tests/test_hooks.py` now fails if a flat `.md` reappears
+- **Both `session-start.py` and `maintenance-check.py` resolved the project root by walking up
+  from their own file location**, which breaks when a hook runs from a subdirectory. Now
+  `git rev-parse --show-toplevel` with a cwd fallback
+- `test_hooks.py` used an em-dash in its FAIL line - the same Windows cp1252 crash class fixed for
+  the arrow in March, and it only renders when a test fails
+
+**Changed:**
+- **`session-start.py` emits the `hookSpecificOutput` envelope** rather than a flat top-level
+  `additionalContext`. The envelope is what current Claude Code documents and what every recent
+  hook feature builds on; whether the flat key is still honoured for `SessionStart` is unverified,
+  so the kit ships the current shape and the tests assert it
+- `maintenance-check.py` ignores lockfiles, and its trivial-session threshold rose from 15 to 100
+- Skills 5 to 8, replaced entirely: `adversarial-review` (rewritten), `proof`, `rigor`, `paranoia`,
+  `scalpel`, `unverified`, `shippable`, `goal-loop` - all in folder format
+- `structured-reasoning` retired. Its Decision Priority and Stuck Protocol already live in
+  `docs/GLOBAL_ROUTER_TEMPLATE.md`; its **Verification Hierarchy** was unique to it and has been
+  relocated into `.claude/rules/quality-gate.md`, next to the Verification Language Rule it
+  complements - the hierarchy ranks evidence, the rule governs claims
+- `project-status` and `codebase-audit` retired as superseded by built-in commands and by
+  `/paranoia` + `/unverified`
+- `research-then-implement` moved to `docs/` - a reference pattern, not an invocable skill
+- `test_hooks.py` 22 to 34 tests. Both new checks were fed a known-bad case and confirmed to fail
+  before being trusted
+- Added **The Enforcement Problem** - why prose instructions decay and what to do instead
 
 ### 2026-03-24 — Modular Architecture & Research-Backed Traps
 

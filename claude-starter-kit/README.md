@@ -34,11 +34,8 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `.claude/hooks/session-end.py` | Claude Code | Auto-persists working state on graceful session exit |
 | `.claude/hooks/precommit-doc-check.py` | Claude Code | Blocks commits where code is staged but no docs are |
 | `.claude/hooks/_state_utils.py` | Claude Code | Shared utilities for state management hooks |
-| `.claude/skills/structured-reasoning.md` | Fixed | Decision framework: priority hierarchy, verification levels, stuck protocol |
-| `.claude/skills/project-status.md` | Fixed | `/project-status` — quick project state overview |
-| `.claude/skills/research-then-implement.md` | Fixed | `/research-decide` — two-phase pattern: explore → decide → implement with fresh context |
-| `.claude/skills/adversarial-review.md` | Fixed | `/adversarial-review` — three-pass bug verification (bug hunter → disprover → referee) |
-| `.claude/skills/codebase-audit.md` | Fixed | `/codebase-audit` — systematic health check: silent failures, dead code, contract drift, security |
+| `.claude/skills/<name>/SKILL.md` | Fixed | 8 invocable disciplines — see **The Skills** below |
+| `docs/research-then-implement.md` | Reference | Two-phase pattern: research, write a decision, then implement with fresh context |
 | `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
 | `samples/` | Reference | Filled-in examples from real projects showing what adapted files look like |
 | `tests/test_hooks.py` | Fixed | Validates that hook scripts parse and run without errors |
@@ -69,11 +66,35 @@ The `WORKING_STATE.md` pattern gives the AI persistent working memory across ses
 ### Battle-Tested Quality Gate
 The "Before Submitting Changes" section isn't a generic checklist — each rule exists because a specific real bug prompted it. The lattice check works when you enforce it actively on every change, not as a checkbox to skim past.
 
-### Adversarial Review
-`/adversarial-review` exploits sycophancy bias in opposing directions to find real bugs — overclaim in pass 1, disprove in pass 2, adjudicate in pass 3.
+### Verification Disciplines
+Eight skills, each a way of not fooling yourself: `/adversarial-review` (overclaim in opposing directions, then adjudicate), `/proof` (the check that silently lied), `/rigor` (verified vs inferred vs assumed), `/paranoia` (one defect class per pass, to convergence), `/scalpel` (size the fix to the evidence), `/unverified` (where the "I don't know" died), `/shippable` (can a stranger run it), `/goal-loop` (nothing is done without a pre-declared machine-checkable proof).
 
 ### Automatic Maintenance (Claude Code)
 Session hooks ensure docs stay current and working state is updated. The stop hook blocks if code changed but maintenance wasn't done. These require Claude Code — other tools get the standards but not the automation.
+
+## The Skills
+
+| Skill | Use it when |
+|-------|-------------|
+| `/adversarial-review` | Before merging a diff. Two passes overclaiming in opposite directions, then adjudication. |
+| `/proof` | Before trusting a migration, dedup, backfill, mass-edit, or any "is it actually done?" claim over real data. |
+| `/rigor` | On a reasoning problem with no artifact yet. Closes with a verified / inferred / assumed ledger. |
+| `/paranoia` | End of a long session, or before a handoff. Hunts one unexhausted defect class per pass. |
+| `/scalpel` | When the right *size* of a fix is part of the question. |
+| `/unverified` | On anything producing claims from incomplete input, especially with a model in the loop. |
+| `/shippable` | Before submitting, demoing, or handing over. |
+| `/goal-loop` | To close a set of gaps end to end with subagents you judge rather than trust. |
+
+### Why folder format matters
+
+A skill must live at `.claude/skills/<name>/SKILL.md` with YAML frontmatter carrying `name` and
+`description`. **A flat `.md` file directly inside `skills/` is never registered** — it silently
+does nothing, forever. `tests/test_hooks.py` checks for this, because it is the easiest way to
+ship a skill that cannot be invoked.
+
+The `description` is the most important line in the file: it is what the model reads when deciding
+whether the skill applies. Write it as a trigger condition ("Use when the user runs X or asks Y"),
+not as a summary.
 
 ## Requirements
 
@@ -86,8 +107,11 @@ Session hooks ensure docs stay current and working state is updated. The stop ho
 Run the hook test to make sure everything parses correctly:
 
 ```bash
-python3 tests/test_hooks.py
+python3 tests/test_hooks.py     # 34/34 expected
 ```
+
+The suite checks that hooks compile, that `session-start.py` emits the current output envelope,
+and that every skill is in a format Claude Code actually registers.
 
 ## The Principle Lattice
 

@@ -37,6 +37,23 @@ Skip any step = the claim is unverified.
 - "I'm confident this works" (confidence ≠ evidence)
 - "I believe this fixes it"
 
+## Verification Hierarchy
+
+When checking if something works, these are in order of trustworthiness:
+
+```
+1. Automated test passes (highest confidence)
+2. Manual trace through the actual code path
+3. Running it and observing the output
+4. Reading the code and reasoning about it
+5. "It looks correct to me" (lowest — almost worthless)
+```
+
+Never stop at level 5. At minimum, reach level 2.
+
+Relocated here from the retired `structured-reasoning` skill. It ranks *evidence*;
+the Verification Language Rule above governs *claims*. Use them together.
+
 ## Rationalization Patterns
 
 Every shipped bug was preceded by a thought that felt reasonable. If you catch yourself thinking any of these, you are about to repeat history:
