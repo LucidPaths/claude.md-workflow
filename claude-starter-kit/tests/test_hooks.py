@@ -13,6 +13,7 @@ Run: python3 tests/test_hooks.py
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -173,6 +174,34 @@ if os.path.isdir(skills_dir):
         )
 else:
     test("skills/ directory exists", False)
+
+# --- Test 8: executable guards ---
+# The kit argues that hard don'ts belong in git, not in prompts. That argument
+# is only honest if the script it ships actually parses and is closed by default.
+print("")
+print("guards/")
+guard = os.path.join(STARTER_KIT_DIR, "guards", "install-guards.sh")
+test("install-guards.sh exists", os.path.isfile(guard))
+if os.path.isfile(guard):
+    with open(guard, encoding="utf-8") as f:
+        first, body = f.readline(), f.read()
+    test("has a shebang", first.startswith("#!"))
+    test("installs both hooks", "pre-push" in body and "pre-commit" in body)
+    test("provides human overrides", "ALLOW_PROTECTED_PUSH" in body and "ALLOW_PROTECTED_PATHS" in body)
+    test("refuses to clobber foreign hooks", "installed-by:" in body)
+    bash = shutil.which("bash")
+    if bash:
+        r = subprocess.run([bash, "-n", guard], capture_output=True, text=True)
+        test("passes bash -n", r.returncode == 0, r.stderr.strip())
+    else:
+        print("  SKIP  bash -n (no bash on PATH)")
+
+protected = os.path.join(STARTER_KIT_DIR, ".claude", "protected-paths.txt")
+test("protected-paths.txt ships", os.path.isfile(protected))
+if os.path.isfile(protected):
+    with open(protected, encoding="utf-8") as f:
+        active = [l.strip() for l in f if l.strip() and not l.strip().startswith("#")]
+    test("ships closed by default (no active entries)", not active, "active: %s" % active)
 
 # --- Summary ---
 print(f"\n{'=' * 40}")
