@@ -30,7 +30,7 @@ def test(name, condition, detail=""):
         print(f"  PASS  {name}")
         passed += 1
     else:
-        print(f"  FAIL  {name}" + (f" — {detail}" if detail else ""))
+        print(f"  FAIL  {name}" + (f" - {detail}" if detail else ""))
         failed += 1
 
 
@@ -97,11 +97,23 @@ if os.path.isfile(session_start):
         try:
             output = json.loads(stdout)
             test("valid JSON output", True)
+            hso = output.get("hookSpecificOutput")
             test(
-                "has additionalContext key",
-                "additionalContext" in output,
-                f"keys: {list(output.keys())}",
+                "uses hookSpecificOutput envelope (not the legacy flat key)",
+                isinstance(hso, dict),
+                f"top-level keys: {list(output.keys())}",
             )
+            if isinstance(hso, dict):
+                test(
+                    "hookEventName is SessionStart",
+                    hso.get("hookEventName") == "SessionStart",
+                    f"got: {hso.get('hookEventName')!r}",
+                )
+                test(
+                    "carries additionalContext",
+                    bool(hso.get("additionalContext")),
+                    f"keys: {list(hso.keys())}",
+                )
         except json.JSONDecodeError as e:
             test("valid JSON output", False, str(e))
 else:
@@ -131,6 +143,36 @@ if os.path.isdir(rules_dir):
             expected in md_files,
             f"not found in {md_files}",
         )
+
+# --- Test 7: skills are in the folder format Claude Code registers ---
+# A flat .md directly in skills/ is NOT registered and can never be invoked.
+# This is the single easiest way to ship a skill that silently does nothing.
+print("")
+print(".claude/skills/")
+skills_dir = os.path.join(STARTER_KIT_DIR, ".claude", "skills")
+if os.path.isdir(skills_dir):
+    entries = sorted(os.listdir(skills_dir))
+    strays = [e for e in entries if e.endswith(".md")]
+    test(
+        "no flat .md files in skills/ (they never register)",
+        not strays,
+        f"found: {', '.join(strays)}",
+    )
+    dirs = [e for e in entries if os.path.isdir(os.path.join(skills_dir, e))]
+    test("at least one skill present", bool(dirs))
+    for d in dirs:
+        skill_md = os.path.join(skills_dir, d, "SKILL.md")
+        if not os.path.isfile(skill_md):
+            test(f"{d}/SKILL.md exists", False, "missing")
+            continue
+        with open(skill_md, encoding="utf-8") as f:
+            head = f.read(600)
+        test(
+            f"{d} has name+description frontmatter",
+            head.startswith("---") and "name:" in head and "description:" in head,
+        )
+else:
+    test("skills/ directory exists", False)
 
 # --- Summary ---
 print(f"\n{'=' * 40}")

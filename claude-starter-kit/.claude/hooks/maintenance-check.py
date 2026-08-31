@@ -22,7 +22,7 @@ import subprocess
 
 # Minimum transcript lines before triggering maintenance check.
 # Avoids nagging on quick single-command sessions.
-TRIVIAL_SESSION_THRESHOLD = 15
+TRIVIAL_SESSION_THRESHOLD = 100
 
 # Number of uncommitted files that triggers a commit reminder.
 COMMIT_WARNING_THRESHOLD = 5
@@ -36,12 +36,29 @@ CODE_EXTENSIONS = {
 }
 
 
+IGNORED_FILES = {
+    'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml',
+    'Cargo.lock', 'poetry.lock', 'Gemfile.lock',
+}
+
+
 def get_project_root():
     """Get project root from environment or by walking up from this script."""
     env_root = os.environ.get('CLAUDE_PROJECT_DIR')
     if env_root and os.path.isdir(env_root):
         return env_root
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # Try git root (works when inside a repo, regardless of subdirectory)
+    try:
+        result = subprocess.run(
+            ['git', 'rev-parse', '--show-toplevel'],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except Exception:
+        pass
+    # Fallback: cwd (Claude Code sets this to the project directory)
+    return os.getcwd()
 
 
 def get_modified_files(project_root):
@@ -73,7 +90,7 @@ def get_modified_files(project_root):
             files.extend(result3.stdout.strip().split('\n'))
     except Exception:
         pass
-    return list(set(files))
+    return list(set(f for f in files if os.path.basename(f) not in IGNORED_FILES))
 
 
 def has_code_changes(files):
