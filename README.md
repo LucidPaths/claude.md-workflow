@@ -11,6 +11,76 @@ Distilled from battle-tested patterns in the [HIVE](https://github.com/LucidPath
 
 ---
 
+## The Skills
+
+Eight invocable disciplines. **This is the part most worth stealing** — they work as prompts for
+any model, with or without the rest of the kit.
+
+**Start with these two.** They cover the two moments most work goes wrong.
+
+| Skill | Use it when |
+|-------|-------------|
+| `/adversarial-review` | Before merging a diff. Two passes that overclaim in *opposite* directions, then adjudication. The intersection of "the bug hunter couldn't miss it" and "the disprover couldn't kill it" is remarkably accurate. |
+| `/shippable` | Before submitting, demoing or handing over. There is the work you did and the work that *arrives* — the gap is invisible to exactly one person: you. |
+
+**Then these four, as the situation calls for them.**
+
+| Skill | Use it when |
+|-------|-------------|
+| `/proof` | Before trusting a migration, dedup, backfill or any "is it actually done?" claim over real data. "The check passed" is not "the thing is true" — most data disasters are a check that silently lied. |
+| `/unverified` | On anything that produces claims from incomplete input. Systems fail by being confidently *complete*, filling the half of the answer they don't have with no seam a reader can see. |
+| `/rigor` | On a reasoning problem with no artifact yet. Keeps verified, inferred and assumed separate all the way into the output. |
+| `/scalpel` | When the right *size* of a fix is part of the question. Machinery scales with evidence of need, never with the gravity of the invocation. |
+
+**These two are advanced.** They assume a large session or a multi-agent setup — skip them until you
+want that.
+
+| Skill | Use it when |
+|-------|-------------|
+| `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree. |
+| `/goal-loop` | Closing a set of gaps end to end with subagents. Every gap declares its terminating proof *before* work starts; "the agent said so" never counts. |
+
+### Why folder format matters
+
+A skill must live at `.claude/skills/<name>/SKILL.md` with YAML frontmatter carrying `name` and
+`description`. **A flat `.md` file directly inside `skills/` is never registered** — it silently does
+nothing, forever. `tests/test_hooks.py` fails if one appears, because this is the easiest way to ship
+a skill that cannot be invoked.
+
+The `description` is the most important line in the file: it is what the model reads when deciding
+whether the skill applies. Write it as a trigger condition ("Use when the user runs X or asks Y"),
+not as a summary.
+
+The two-phase research pattern that used to be `/research-decide` is now a reference doc at
+`claude-starter-kit/docs/research-then-implement.md` — it is a way of working, not something you invoke.
+
+## The Enforcement Problem
+
+This is the hardest-won lesson in the repo, and it applies to any prompt-based framework
+including this one.
+
+**Instruction adherence decays, and more prose makes it worse.** This is not a hunch — it is
+[documented guidance](https://code.claude.com/docs/en/memory): *"target under 200 lines per CLAUDE.md
+file. Longer files consume more context and reduce adherence."* The same page notes that instruction
+files are context, not enforced configuration, and that contradictory rules get resolved arbitrarily.
+
+Running agent fleets, the shape you see matches that: a rule stated in prose holds best right after
+it is read and worst after a resume or deep into a long session. Adding another paragraph telling the
+model to try harder does not fix it.
+
+What works is making non-compliance **visible in the output**. Not "verify your claims," but
+*"end with a table of every claim and the source you read for it."* An instruction the model can
+satisfy by asserting it complied is not enforcement. An instruction that requires a filled-in
+artifact is.
+
+Every skill here ends with a required closing block for exactly this reason - `/proof` must print
+its invariant, population, command, fail-proof and what it merely trusted; `/scalpel` must print
+what it deliberately did not build. A skipped block is obvious. A skipped intention is not.
+
+The strongest version is a check outside the model entirely: a git hook, a CI job, a test.
+**If a model must never do X, enforce X with tooling, not with a markdown rule it can forget.**
+That is what `.claude/hooks/` and `tests/test_hooks.py` are for.
+
 ## What This Is
 
 The **claude-starter-kit** is not application code. It's an operating system for how Claude Code behaves inside your repository — rules, hooks, skills, and templates that shape every session into consistent, auditable, high-quality work.
@@ -28,7 +98,7 @@ claude-starter-kit/
 │   ├── PR_GUIDELINES.md               # PR description + commit format
 │   ├── rules/
 │   │   ├── coding-standards.md        # 8 universal coding standards
-│   │   ├── traps.md                   # 13 behavioral traps + anti-rationalization
+│   │   ├── traps.md                   # 8 behavioral traps + anti-rationalization
 │   │   └── quality-gate.md            # Pre-submit verification checklist
 │   ├── hooks/
 │   │   ├── session-start.py           # Auto-injects git state at session start
@@ -77,7 +147,7 @@ Every decision Claude makes is scored against these. If a choice violates one, i
 `CLAUDE.md` is the heavyweight file. It contains:
 
 - **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix ALL instances of a pattern, single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary (also in `.claude/rules/coding-standards.md`)
-- **13 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, retry loops, verification language, etc.) plus an anti-rationalization table (also in `.claude/rules/traps.md`)
+- **8 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, retry loops, verification language, etc.) plus an anti-rationalization table (also in `.claude/rules/traps.md`)
 - **Verification language rule** — forbidden phrases ("should work now", "looks correct") that require evidence from tool calls before any completion claim
 - **Anti-rationalization patterns** — catches the model constructing arguments for why traps don't apply ("this is different because..." = it's not)
 - **Cross-file contract tracking** — a table for tracking values that must stay in sync across files
@@ -121,26 +191,11 @@ Six lifecycle hooks registered in `.claude/settings.json`:
 - Common functions for working state auto-maintenance
 - Used by pre-compact.py and session-end.py
 
-### 4. Skills (the frameworks)
+### 4. Skills (the disciplines)
 
-Eight invocable disciplines. This is the part most worth stealing.
-
-Each lives at `.claude/skills/<name>/SKILL.md`. **A flat `.md` directly inside `skills/` is never
-registered** - it silently does nothing, forever. `tests/test_hooks.py` fails if one appears.
-
-| Skill | The one idea in it |
-|-------|--------------------|
-| `/adversarial-review` | Run two passes that overclaim in *opposite* directions, then adjudicate. The intersection of "the bug hunter couldn't miss it" and "the disprover couldn't kill it" is remarkably accurate. |
-| `/proof` | "The check passed" is not "the thing is true." Most data disasters aren't a missing check - they're a check that silently lied. Prove your checker *can* fail before you trust it passing. |
-| `/rigor` | Keep verified, inferred and assumed separate all the way into the output. Confidence is earned per claim, not applied in bulk. |
-| `/paranoia` | "I checked it" exhausts nothing. A *class* of defect is exhausted per document, per tree. Done is when finds decay to cosmetics across a fully swept artifact x class matrix. |
-| `/scalpel` | Machinery scales with evidence of need, never with the gravity of the invocation. Full imaging, smallest incision. |
-| `/unverified` | Systems fail by being confidently *complete* - filling the half of the answer they don't have, in the same voice, with no seam a reader can see. Go find where the uncertainty died. |
-| `/shippable` | There is the work you did and the work that *arrives*. The gap is invisible to exactly one person: you. Become the stranger with an empty machine and twenty minutes. |
-| `/goal-loop` | Every gap declares its terminating proof *before* work starts. "The agent said so" and "looks right" never count. |
-
-The two-phase research pattern that used to be `/research-decide` is now a reference doc at
-`docs/research-then-implement.md` - it is a way of working, not something you invoke.
+Eight invocable disciplines, covered in **[The Skills](#the-skills)** above. They are listed last here
+and first in the document on purpose: they are the layer you can lift out and use anywhere, while the
+three layers below only matter if you adopt the kit itself.
 
 ## How It Works
 
@@ -157,36 +212,13 @@ First session:
 
 Every session:
   → Orientation at start (branch, commits, changes, next steps)
-  → Standards enforced during work (8 coding standards, 13 trap interrupts)
+  → Standards enforced during work (8 coding standards, 8 trap interrupts)
   → Documentation check at end (blocks if code changed but docs didn't)
 
 Per task:
   → Copy TASK_CONTRACT_TEMPLATE.md, define acceptance criteria
   → Task is NOT done until every criterion is verifiably satisfied
 ```
-
-## The Enforcement Problem
-
-This is the hardest-won lesson in the repo, and it applies to any prompt-based framework
-including this one.
-
-**Instruction adherence decays.** Measured on a real agent fleet, a rule stated in prose held
-roughly half the time over sustained work - strongest right after it was read, weakest after a
-resume or a long session. Adding more prose does not fix it. It makes it worse, because a longer
-document is read less carefully.
-
-What works is making non-compliance **visible in the output**. Not "verify your claims," but
-*"end with a table of every claim and the source you read for it."* An instruction the model can
-satisfy by asserting it complied is not enforcement. An instruction that requires a filled-in
-artifact is.
-
-Every skill here ends with a required closing block for exactly this reason - `/proof` must print
-its invariant, population, command, fail-proof and what it merely trusted; `/scalpel` must print
-what it deliberately did not build. A skipped block is obvious. A skipped intention is not.
-
-The strongest version is a check outside the model entirely: a git hook, a CI job, a test.
-**If a model must never do X, enforce X with tooling, not with a markdown rule it can forget.**
-That is what `.claude/hooks/` and `tests/test_hooks.py` are for.
 
 ## Why It Works
 
@@ -212,7 +244,7 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 ## Benefits for Claude
 
 1. **Immediate orientation** — no wasted turns asking "what are we working on?"
-2. **Behavioral guardrails** — the 13 traps + anti-rationalization catch real failure patterns before they cause damage
+2. **Behavioral guardrails** — 8 traps + an anti-rationalization table, short enough to actually hold in context
 3. **Explicit done conditions** — task contracts prevent both under-delivery and over-engineering
 4. **Structured decision-making** — priority hierarchy and research-then-implement prevent flailing
 5. **Session continuity** — `WORKING_STATE.md` bridges context between sessions
@@ -299,7 +331,7 @@ The starter kit assumes a model that can:
 ### Mitigations
 
 **For weaker models (Haiku-class, smaller open-source):**
-- **Reduce CLAUDE.md scope** — 8 standards + 13 traps is too much for smaller context windows. Pick the 3-4 most critical for your project and cut the rest
+- **Reduce the always-loaded set further** — 8 standards + 8 traps is already trimmed, but it is still too much for a small context window. Pick the 3-4 traps your project actually hits and cut the rest
 - **One repo per session** — multi-repo contexts dramatically increase confusion. Never give a weaker model access to repos it shouldn't touch
 - **Hardcode don'ts in hooks, not instructions** — if a model must never push to main, enforce it with a pre-push git hook, not a markdown rule it can forget. Models forget instructions; git hooks don't
 - **Shorter sessions** — degradation compounds over long conversations. End sessions early and rely on `WORKING_STATE.md` for continuity instead of marathon sessions
@@ -332,6 +364,39 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-08-31 — Subtraction Pass
+
+A second pass, entirely cuts. The kit had accumulated four separate places telling the model to
+verify its claims, all loaded simultaneously. The [memory docs](https://code.claude.com/docs/en/memory)
+are explicit that longer instructions reduce adherence, so the fix was removal, not more prose.
+
+**Changed:**
+- **Traps 13 to 8**, by merging rather than deleting. "Let me optimize this" and "While I'm here"
+  were one failure (unasked work); "This looks correct" and "This should work now" were one failure
+  (assertion instead of proof); "I'll fix this one place" and "I'll add it to the validation list"
+  were one failure on two axes (across files, across layers). Trap 5 now points at the Verification
+  Language Rule in `quality-gate.md` instead of restating its forbidden-phrase list — that was the
+  third of four duplicate coverages
+- **Nothing was deleted, two things were relocated.** Position bias (Wang et al. 2023) moved into
+  `/adversarial-review`, where you actually enumerate and rank many items. Instruction degradation
+  (Liu et al. 2023) moved into CLAUDE.md's Context Discipline, which already governs how work is
+  broken up. Both keep their citations
+- **README leads with the skills.** They were at layer 4, below a principle table, a standards list
+  and six hook descriptions. They are the part worth stealing, so they are now the first thing after
+  the intro — and tiered, so a newcomer starts with two rather than eight. `/goal-loop` and
+  `/paranoia` are labelled advanced instead of sitting next to a beginner placeholder
+- **One rationalization table, not two.** `quality-gate.md` and `traps.md` each carried a
+  "you're rationalizing" table with different rows and the same job, both loaded every session.
+  Merged into the single table in `traps.md`, which is where behavioural catches belong
+- **The Enforcement Problem now cites its source.** It previously asserted an unfalsifiable fleet
+  measurement; it now quotes the documented guidance and presents the fleet observation as an
+  observation. The repo's own `/unverified` skill exists to catch exactly that kind of claim
+
+**Deliberately not done:** `paths:` frontmatter was *not* retrofitted onto the three shipped rules.
+Coding standards, traps and the quality gate apply to any file in any language, so scoping them
+would make them silently absent exactly when they matter. The mechanism is documented in the kit
+README for project rules, where it belongs.
 
 ### 2026-08-31 — Skills Refresh
 
