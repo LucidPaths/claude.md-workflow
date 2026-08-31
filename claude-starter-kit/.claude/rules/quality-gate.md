@@ -54,16 +54,6 @@ Never stop at level 5. At minimum, reach level 2.
 Relocated here from the retired `structured-reasoning` skill. It ranks *evidence*;
 the Verification Language Rule above governs *claims*. Use them together.
 
-## Rationalization Patterns
-
-Every shipped bug was preceded by a thought that felt reasonable. If you catch yourself thinking any of these, you are about to repeat history:
-
-| Rationalization | Defense |
-|---|---|
-| "I tested it locally and it works" | Test the ACTUAL deployment/production path, not dev setup. |
-| "`let _ =` / `catch {}` is fine here" | If the operation failing breaks the feature, handle the error. |
-| "I'll wire up the caller later" | If nothing calls it NOW, it's dead code. Wire it or don't write it. |
-
 ## Conditional Checks
 
 9. Cross-file contract added? → Single source of truth or cross-ref in BOTH files (Coding Standard #5)

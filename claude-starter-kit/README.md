@@ -18,10 +18,10 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 
 | File | Type | Purpose |
 |------|------|---------|
-| `CLAUDE.md` | Mixed | Project instructions — universal coding standards (fixed) + project-specific sections (adaptive) |
+| `CLAUDE.md` | Mixed | Project instructions — project-specific sections (adaptive) + context discipline and git workflow (fixed) |
 | `docs/PRINCIPLE_LATTICE.md` | Mixed | 5 axiomatic design principles — axioms are fixed, instantiations grow with your project |
 | `.claude/rules/coding-standards.md` | Fixed | 8 universal coding standards — auto-loaded by Claude Code |
-| `.claude/rules/traps.md` | Fixed | 13 behavioral traps + anti-rationalization table — auto-loaded by Claude Code |
+| `.claude/rules/traps.md` | Fixed | 8 behavioral traps + anti-rationalization table — auto-loaded by Claude Code |
 | `.claude/rules/quality-gate.md` | Fixed | Pre-submit verification checklist — auto-loaded by Claude Code |
 | `docs/WORKING_STATE_TEMPLATE.md` | Template | Copy to `WORKING_STATE.md` in project root — session-transcending memory for the AI |
 | `docs/TASK_CONTRACT_TEMPLATE.md` | Template | Copy per-task to define explicit acceptance criteria and done conditions |
@@ -47,6 +47,35 @@ The kit uses a **two-layer architecture**:
 - **`.claude/rules/`** — universal standards (coding standards, traps, quality gate) auto-loaded by Claude Code without explicit imports
 
 This separation means universal rules stay clean and version-controlled independently of project-specific adaptations.
+
+**Everything above loads into every session.** That is the point, and it is also the cost — the
+[memory docs](https://code.claude.com/docs/en/memory) advise staying under 200 lines per file
+because longer instructions reduce adherence. The kit's always-loaded set is deliberately small, and
+the trap list is capped at 8 for the same reason: a list you can hold in your head fires, a list you
+skim does not.
+
+#### Scoping your own rules to file types
+
+When you add project rules of your own, scope them so they load only when relevant. A rule with a
+`paths` frontmatter key loads when Claude reads a matching file, instead of at every launch:
+
+```markdown
+---
+paths:
+  - "src/api/**/*.ts"
+  - "src/**/*.{test,spec}.ts"
+---
+
+# API rules
+
+- Every endpoint validates its input before touching the database
+- Errors use the standard response shape
+```
+
+`paths` takes a YAML list of globs and supports brace expansion. **A rule with no `paths` key loads
+unconditionally** — which is why the three shipped rules don't use it: coding standards, traps and
+the quality gate apply to any file in any language, so scoping them would make them silently absent
+exactly when they matter. Use `paths` for rules that genuinely only apply to part of your tree.
 
 ### Hook Lifecycle Coverage
 

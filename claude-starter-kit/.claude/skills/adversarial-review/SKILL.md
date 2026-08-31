@@ -23,6 +23,10 @@ Adopt an aggressive bug-finding stance. Be exhaustive — cast the widest net yo
 - **What could go wrong**
 - **Proof** — a concrete scenario or input that triggers it. No proof, no entry.
 
+**Order bias:** when hunting across many files, or ranking many findings, randomize the order you
+consider them in. Models systematically favour items by their position in context rather than by
+quality — first and last items get unfair treatment. (Source: Wang et al. 2023)
+
 ## Pass 2: Adversarial Disprover (underclaim bias)
 
 Switch roles. For each Pass-1 issue, try to **disprove** it:

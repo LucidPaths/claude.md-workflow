@@ -160,6 +160,8 @@ Never push without fetching first. Commit messages follow conventional style: `f
 
 **Research and implementation are separate phases.** When a task requires exploring 5+ files or choosing between approaches, don't mix thinking and doing — research first, write a concrete decision, then implement with fresh focus. See `docs/research-then-implement.md` for the full pattern.
 
+**Decompose long or complex tasks, and re-ground at each step.** Instruction-following degrades with task complexity and conversation length — the rules you read at the start hold weakest exactly when the task is hardest. Break the work into subtasks and restate the constraints at each one rather than trusting them to survive a long session. (Source: Liu et al. 2023, AgentBench)
+
 **Don't use subagents/task tools for research.** Do research directly with Read/Grep/Glob. Subagents burn 5-10x more tokens for the same result. Only use subagents for truly independent parallel *write* tasks.
 
 ---
