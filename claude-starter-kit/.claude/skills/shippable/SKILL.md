@@ -48,8 +48,8 @@ for b in $(git branch -r | grep -v HEAD); do
 done
 ```
 
-If another branch has meaningfully more files than the default, your work is somewhere nobody will look.
-Merging costs minutes; being judged on three quarters of your project costs everything.
+If another branch has more files than the default (any surplus counts), your work is somewhere nobody will
+look. Merging costs minutes; being judged on three quarters of your project costs everything.
 
 **2. Understand.** Can they say what this is in thirty seconds? Open your README as a stranger. If it
 still says `create-next-app` or `# Project`, you have written a product and shipped an anonymous folder.
@@ -103,7 +103,7 @@ The gates are the checklist. This is the actual test, and it takes fifteen minut
 That list is your defect list, in priority order. Nothing else you do this week will improve how your work
 is received as much as fixing it.
 
-## The verdict
+## Closing block (required) — The verdict
 
 ```
 GATE     which of the seven
@@ -144,5 +144,7 @@ Ababa, August 2026. Every gate above is a failure that actually happened there, 
 Same rule as its sibling skill: **the working patterns are credited, the failures are anonymous.** The
 teams concerned received them privately, in detail, by name.
 
-Run this with `unverified`. That one asks whether your system can admit what it does not know. This one
-asks whether anyone but you will ever find out.
+## When not to use
+
+Not for whether your system can admit what it does not know: that is `unverified`'s question; run this with it.
+This one asks whether anyone but you will ever find out.

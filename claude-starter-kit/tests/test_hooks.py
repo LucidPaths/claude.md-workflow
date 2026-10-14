@@ -16,6 +16,7 @@ import os
 import shutil
 import subprocess
 import sys
+import unittest
 
 STARTER_KIT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOOKS_DIR = os.path.join(STARTER_KIT_DIR, ".claude", "hooks")
@@ -207,4 +208,14 @@ if os.path.isfile(protected):
 print(f"\n{'=' * 40}")
 total = passed + failed
 print(f"  {passed}/{total} passed" + (f", {failed} failed" if failed else ""))
-sys.exit(1 if failed else 0)
+
+
+# Under `python -m unittest discover` the checks above run at import; this case turns their
+# result into a unittest result instead of a SystemExit that unittest reports as an import error.
+class HookSmokeChecks(unittest.TestCase):
+    def test_all_hook_checks_pass(self):
+        self.assertEqual(failed, 0, f"{failed} hook check(s) failed; run python tests/test_hooks.py for the list")
+
+
+if __name__ == "__main__":
+    sys.exit(1 if failed else 0)

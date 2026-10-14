@@ -23,7 +23,8 @@ the one level where it proves something.
    them each job (§2.0); never route from memory. A model the user names is real, even when it is newer than your
    knowledge.
 5. **Budget is shared.** A subscription or quota is still finite, and a fan-out draws on the same budget as the user's
-   other running sessions. Probe a wide run with a limit first; stop on the first quota error.
+   other running sessions. A fan-out of more than `DEFAULT fanout_probe = 3` parallel agents starts as one probe agent
+   with the same brief, and widens only after the probe finished without a quota error; stop on the first quota error.
 
 ---
 
@@ -35,7 +36,7 @@ class, or split the slice so its mechanical part can go down a tier.
 | Class | Signals (any one of a higher class wins) | Typical work |
 |---|---|---|
 | **Mechanical** | the brief fixes every edit; the guarding test is named in advance; no design choice is left; one module; no contract, schema, persistence, security or guardrail change | moving strings into a catalogue; adding declared parameters copied from a source definition; register or changelog rows; fixtures; doc updates; tests written from a given assertion list; enumerations, searches, verbatim quote extraction |
-| **Standard** | bounded logic inside one module; reads an existing contract; the design is locked but edge cases and error paths need judgment | an adapter for a new endpoint; detecting what a dependency serves; a config-driven behaviour change; a new tool over an existing read |
+| **Standard** | logic inside one module; reads an existing contract; the design is locked but the brief leaves edge cases or error paths to the builder | an adapter for a new endpoint; detecting what a dependency serves; a config-driven behaviour change; a new tool over an existing read |
 | **Complex** | crosses modules; changes a contract or schema version, a guardrail, scope or permissions, persistence, or how components are wired together; open micro-decisions remain; or a wrong result would be silent because no existing test would notice | conversation state with verification; consolidating composition; a permission change; a data migration |
 
 ---
@@ -46,9 +47,12 @@ class, or split the slice so its mechanical part can go down a tier.
 
 Before routing, list the models this harness can actually dispatch: the model options of the subagent or task tool,
 the provider's model list, the user's configuration. Place each in a tier by the provider's own positioning (flagship,
-balanced, fast) and by any current benchmark or price the user or provider documentation gives; when two are close,
-take the stronger one for judgment roles. With only one or two models, collapse the tiers: the classes still decide
-critic rounds and test levels, and the strongest available model still does all judging.
+balanced, fast) and by any current benchmark or price the user or provider documentation gives. Two models in one tier:
+judgment roles take the one the provider positions higher. Where no source orders the two, ASK: "Which of <A> and <B>
+do you rank higher for review work?" → the named one takes the judgment roles; nobody to ask (a subagent, a scheduled
+run) → route no judgment role yet and report the question, with both models' sources, to whoever dispatched you. With
+only one or two models, collapse the tiers: the classes still decide critic rounds and test levels, and the strongest
+available model still does all judging.
 
 ### 2.1 Who does what
 
@@ -62,15 +66,33 @@ critic rounds and test levels, and the strongest available model still does all 
 | Builder, complex | flagship | default | |
 | Critic, mechanical and standard slices | flagship | default | never below flagship: critique is judgment |
 | Critic, complex slices and the plan | strongest, blind | default | reads requirements, the artifact and the code; never the orchestrator's notes |
-| Reading workers (inventories) | fast for enumerations and verbatim quotes; balanced for judgment-heavy reading | | the manager spot-checks every load-bearing claim |
+| Reading workers (inventories) | a script first, wherever a regex or a parser can do the extraction; fast for extraction by an explicit rule (enumerations, verbatim quotes, reformatting); balanced for reading that classifies or judges | highest for fast | the manager spot-checks every load-bearing claim |
 
-- **Effort** follows the user's settings where they gave any; otherwise the model's default, and highest for mechanical
-  builders as above.
+- **Effort** follows the user's settings where they gave any; otherwise the model's default, and highest for the fast
+  tier as above.
+- **The fast tier never classifies, judges or decides.** It extracts, enumerates and transforms by an explicit rule
+  that its brief states (a term list, a pattern, a field map, a template); where a regex or a parser suffices, a script
+  does the job instead. Every verdict (is this line a rule, is this a defect, which kind, which class) comes from the
+  balanced tier or above. A fast-tier output that carries a verdict anyway is used for its extractions only, after the
+  manager's spot-check.
 - **Critic rounds:** mechanical one round, diff and brief only; standard one round with probes; complex up to two. A
   further round only on a confirmed finding.
 - **Escalate, do not repeat:** two failed rounds at one tier → re-dispatch the slice one tier up with the reports,
-  instead of a third round. Rotate a long-lived manager after about three rounds: its context slows every turn and loses
-  detail.
+  instead of a third round.
+- **Agent lifetime.** Precondition: every agent writes its deliverable to files as it goes, so retiring it loses
+  nothing. Retire an agent (manager, builder, critic, worker; the same rule binds the manager's own workers) as soon as
+  one signal fires:
+
+  | Signal | Reason |
+  |---|---|
+  | its reported token use reaches `DEFAULT retire_at = 60 %` of its context window, or the harness reports a context error | past that point every turn is slower and detail starts to drop |
+  | it has delivered, and its next job is a new deliverable | a new job starts in a clean context, not in the residue of the last one |
+  | its slice reached 3 review rounds and the third still has a confirmed finding | a fourth round in the same context repeats the third |
+  | its report repeats a finding already closed, or omits an item that its brief's report format requires or that its previous report listed as open | that is detail being lost |
+
+  Resume the same agent only for a bounded loop-back on its own deliverable: named findings, no new reading. A fresh
+  agent gets a brief built only from durable files (the PRD, the report files, the branch and its head), never the old
+  transcript.
 
 ---
 
@@ -102,7 +124,7 @@ the host app; M = opt-in live tests with a real key.
 |---|---|---|---|
 | Wording, catalogue string, docs | U (string or snapshot) + S | F once | nothing: never B or M for wording |
 | Validation or verification rule | U per accepted form, each with a negative pin (the same form, not given, stays refused) | F once | M only if a prompt changed with it |
-| Prompt (new prompt version) | U (assembly and version) + C with a stand-in model | F once | M: one small recorded sample |
+| Prompt (new prompt version) | U (assembly and version) + C with a stand-in model | F once | M: one recorded sample of `DEFAULT live_sample = 5` cases |
 | Adapter, external interface, detecting what a dependency serves | C with a recorded stand-in of the dependency | F once | live checks once, against the version that will run |
 | Conversation or session flow, reply contract, anything a UI renders | C + N (multi-turn through the real entry point) | F once | B once after deploy, plus one manual check |
 | Wiring, architecture rules, cross-module refactor | C + an architecture test | F once (wide blast radius) | nothing extra |
@@ -129,8 +151,9 @@ the host app; M = opt-in live tests with a real key.
 - Test output is read as the counts line and the failing block; full logs go to files.
 - Reports are a file plus a message of at most 150 words.
 - Scripted gates run before any agent review; agents review what a script cannot judge.
-- One shell per job; no poll loops or watchers; long jobs in the background with a completion notice.
-- Fan-outs are probed with a limit before they run wide (principle 5).
+- One shell per job; no poll loops or watchers; installs, builds, full suites, end-to-end and browser runs go to the
+  background with a completion notice.
+- A fan-out above `fanout_probe` agents starts with one probe agent (principle 5).
 
 ---
 
@@ -139,7 +162,8 @@ the host app; M = opt-in live tests with a real key.
 | Seen | Rule |
 |---|---|
 | The full suite ran three times per slice: builder, manager, orchestrator | §3.3 |
-| A manager ran ten review rounds and its context grew until every turn was slow and lossy | §2.1 escalation and rotation |
+| A manager ran ten review rounds and its context grew until every turn was slow and lossy | §2.1 escalation and agent lifetime |
+| Fast-tier census workers were briefed to decide which lines were rules; every verdict would have had to be made again | §2.1: the fast tier never classifies, judges or decides |
 | A benchmark sweep emptied the shared budget of the user's running sessions | principle 5 |
 | Browser end-to-end planned for a reworded string | §3.2, first row |
 | Critics placed on a mid tier "to save tokens", missing what a stronger model would have refuted | §2.1: critics never below flagship |

@@ -41,8 +41,9 @@ is an assertion with no author. Ask what it claims and who would believe it.
 silently promote a guess to a fact and then stop asking about it — which means the guess is now
 permanent and invisible. Find every threshold and ask what it *erases*.
 
-**4. The empty state.** What the screen shows when there is genuinely nothing. If the empty state looks
-finished, you have built a machine for producing convincing nothing. It should look unfinished.
+**4. The empty state.** What the screen shows when there is genuinely nothing. If the empty state carries
+no visible mark that something is missing, you have built a machine for producing convincing nothing. It
+should look unfinished.
 
 **5. Provenance and evidence fields.** If a value carries a `source`, `evidence` or `citation`, check
 what gets attached when there is no real source. Attaching the whole input as "evidence" for one extracted
@@ -69,7 +70,7 @@ trustworthiness *suppresses scrutiny* of the thing it names, including your own.
 a value is less dangerous when it is called `guessMissingFields` than when it is called `honestExtractor`,
 because the first name warns the next reader and the second one disarms them.
 
-## The verdict
+## Closing block (required) — The verdict
 
 For each finding, four lines. No prose essays.
 
@@ -80,8 +81,9 @@ WHO SEES   who receives it, and whether anything on their screen marks it
 FIX        the smallest change that keeps the unknown visible
 ```
 
-Rank by **who gets hurt**, not by how clever the finding is. An invented phone number in a demo is
-noise; an invented revenue figure reaching a funding reviewer is the whole ballgame.
+Rank by **who gets hurt**, not by how clever the finding is: a finding whose WHO SEES line names a person
+who acts on the output ranks above one seen only in a demo or by developers. An invented phone number in a
+demo is noise; an invented revenue figure reaching a funding reviewer is the whole ballgame.
 
 ## What to build instead
 

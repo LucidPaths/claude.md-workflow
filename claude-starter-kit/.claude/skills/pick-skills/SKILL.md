@@ -12,7 +12,9 @@ run it.
 ## 1. Pin the task
 
 - One sentence: what must exist or be true at the end. Without a task in the invocation, take the open request of the
-  conversation; if that is ambiguous, ask once.
+  conversation. ASK once when there is no open request, or it yields two different end-state sentences:
+  "What must exist or be true at the end: <A> or <B>?" → an end state named: pin it / nobody to ask: report the
+  readings to whoever dispatched you and stop before choosing skills.
 - Its phases: understand, plan, build, verify, review, ship, record. Most tasks touch two or three.
 - Its stakes: reversible or not, data or money at risk, shared or public output, size.
 
@@ -28,12 +30,17 @@ run it.
 
 For each phase, at most one skill: the most specific one that covers it.
 
-- Specific beats general; a project's skill beats a personal one for the same job.
-- A skill whose machinery exceeds the task is not used (a team planning procedure for a one-line fix). Say so.
-- Skills compose in phase order: plan, then build, then verify, then record. Two skills claiming the same job in the same
-  phase are a conflict: pick one and name the reason.
-- A phase no skill covers is a gap. Say it and do that phase with plain judgment; never stretch a near-miss skill over
-  it.
+- Specific beats general: a skill whose description names the task's system, artifact or kind of work beats one that
+  names only a phase or a method; a project's skill beats a personal one for the same job.
+- A skill is not used when its own description excludes the task, or when it requires artifacts or agents that the
+  pinned end state does not need (a team planning procedure for a one-line fix). Say so.
+- Skills compose in phase order: plan, then build, then verify, then record. Two skills that still claim the same job in
+  the same phase after the tests above are a conflict. ASK on a conflict:
+  "For <phase>, run /<A> (<what it does>) or /<B> (<what it does>)?" → A: chain A, list B under NOT USED / B: chain B,
+  list A under NOT USED / nobody to ask: report both with their descriptions to whoever dispatched you, and run only
+  the phases that do not depend on the choice.
+- A phase no skill covers is a gap. List it under GAPS and do that phase without a skill, under the rules the session
+  already carries (the user's and the project's instructions); never stretch a near-miss skill over it.
 - A skill that writes to shared systems (trackers, repositories, messages, bookings) runs only within what the user has
   authorised.
 

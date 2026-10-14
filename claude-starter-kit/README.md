@@ -41,6 +41,9 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `guards/install-guards.sh` | Fixed | Installs pre-push / pre-commit git hooks — hard blocks a model cannot talk its way past |
 | `.claude/protected-paths.txt` | Template | Path prefixes the pre-commit guard refuses (ships empty) |
 | `tests/test_hooks.py` | Fixed | Validates that hooks parse, emit the current schema, and that skills are registerable |
+| `docs/SKILL-STANDARD.md` | Reference | How a skill is written: three kinds of decision rule, banned vague terms, standalone defaults, the closing block |
+| `tests/skill_lint.py` | Fixed | Lints a skills folder against the standard; `--skills-dir` points it at your own skills |
+| `tests/test_skill_lint.py` | Fixed | Proves each lint check fires on a planted defect, and that the shipped skills pass |
 
 ### Modular Architecture
 
@@ -130,6 +133,10 @@ The `description` is the most important line in the file: it is what the model r
 whether the skill applies. Write it as a trigger condition ("Use when the user runs X or asks Y"),
 not as a summary.
 
+Every decision rule in a skill is DETERMINISTIC, a named DEFAULT, or an ASK to the user, and no skill
+needs another to work: a borrowed rule comes with a standalone default inline. The full rules are in
+`docs/SKILL-STANDARD.md`; `python tests/skill_lint.py` checks them.
+
 ## Hard guards (optional, recommended)
 
 Rules and hooks shape behaviour; they do not enforce it. For the things that must never happen,
@@ -164,11 +171,14 @@ Safe to re-run. A pre-existing hook this script did not install is reported and 
 Run the hook test to make sure everything parses correctly:
 
 ```bash
-python3 tests/test_hooks.py     # 45/45 expected
+python3 tests/test_hooks.py                 # 45/45 expected
+python3 tests/skill_lint.py                 # RESULT PASS expected
+python3 -m unittest discover -s tests       # both, as unittest cases
 ```
 
 The suite checks that hooks compile, that `session-start.py` emits the current output envelope,
-and that every skill is in a format Claude Code actually registers.
+and that every skill is in a format Claude Code actually registers. The lint checks every skill
+against `docs/SKILL-STANDARD.md`, and its tests plant one defect per check to show each one fires.
 
 ## The Principle Lattice
 

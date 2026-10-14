@@ -1,6 +1,6 @@
 ---
 name: scalpel
-description: Deep recon first, minimal cut second - determine the real mechanism, frequency, and blast radius of a problem from the live system, then ship the smallest change at the choke point, with proof proportional to the risk and machinery proportional to the evidence. Use when the user runs /scalpel, or hands over a fix/incident/change where the right SIZE of the solution is part of the question. The skill sizes itself - a small task gets a small pass.
+description: Deep recon first, minimal cut second - determine the real mechanism, frequency, and blast radius of a problem from the live system, then ship the smallest change at the choke point, with proof proportional to the risk and machinery proportional to the evidence. Use when the user runs /scalpel, or hands over a fix/incident/change where the right SIZE of the solution is part of the question. The skill sizes itself - a question or a one-liner gets a pass of that size.
 ---
 
 # Scalpel - Full Imaging, Smallest Incision
@@ -11,10 +11,12 @@ Being invoked ceremonially does not entitle the work to be ceremonial.
 
 ## Phase 0 - Size the invocation itself (do this in your head, in seconds)
 
-Before anything: is this a question, a one-liner, or a system change? Answer questions as
-questions. If the honest response is three sentences or a five-line diff, say so and do
-exactly that - invoking this skill on a small task and responding big is the first
-failure it exists to prevent. State your sizing in one line and move on.
+Before anything: is this a question (it asks for an answer, not a change), a one-liner
+(the change fits in a diff of at most `DEFAULT one_liner_max_lines = 5` lines), or a
+system change (anything larger)? Answer questions as questions. If the honest response
+is three sentences or a diff within `one_liner_max_lines`, say so and do exactly that -
+invoking this skill on a question or a one-liner and responding beyond that size is the
+first failure it exists to prevent. State your sizing in one line and move on.
 
 ## Phase 1 - Recon to determinism (never optional, never wasted)
 
@@ -26,20 +28,21 @@ Understand before designing. Read the LIVE system, not your memory of it:
 - **Frequency and blast radius**: how often has this actually fired, and what did it
   actually cost? An observed once-a-month self-evident zero-loss failure and a silent
   daily corrupter deserve different machinery. Count real occurrences; don't imagine ones.
-- **Existing machinery**: what already runs, schedules, alerts, enforces? The best fix
-  usually lives INSIDE something that already exists. Inventory the choke points - the
-  places everything already passes through.
+- **Existing machinery**: what already runs, schedules, alerts, enforces? Inventory the
+  choke points - the places everything already passes through - and look for the fix
+  INSIDE something that already exists before designing anything new.
 - **Standing laws**: postmortems, forbidden operations, conventions of the repo/host you
   are about to touch. A fix that violates a paid-for law is a regression.
 
-Recon spend is always recovered - it is what makes the small fix safe. Artifact spend is
-not. If a big design gets killed later, the recon it triggered was still the value.
+Why: recon spend is always recovered - it is what makes the small fix safe. Artifact
+spend is not. If a big design gets killed later, the recon it triggered was still the
+value.
 
 ## Phase 2 - The cut
 
-- **Choke point first**: prefer the one place everything already flows through over
-  converting N callers. Prefer editing the existing file over creating a sibling system.
-  Prefer deleting over adding.
+- **Choke point first**: change the one place everything already flows through, not N
+  callers; edit the existing file, not a sibling system; delete rather than add. Take the
+  second option of a pair only when the first cannot interrupt the Phase 1 mechanism.
 - **Smallest change that removes the failure mode**: not the smallest that looks like a
   fix - the mechanism from Phase 1 must be provably interrupted.
 - **Proof proportional to risk, discipline over artifact**: prove the actual change -
@@ -58,9 +61,9 @@ not. If a big design gets killed later, the recon it triggered was still the val
 2. **Dead-justification shapes**: structure kept after its reason died (the shared
    primitive nobody calls anymore). If a design decision changed, re-derive what it
    was carrying.
-3. **Evaporating packaging**: count what disappears if you drop ONE choice. If most of
-   the artifact is packaging for a single optional decision, the decision is the design
-   - question it directly.
+3. **Evaporating packaging**: count what disappears if you drop ONE choice. If more than
+   half of the artifact's lines are packaging for a single optional decision, the
+   decision is the design - question it directly.
 4. **Latency/elegance vanity**: optimizing a rare state's speed or a working path's
    beauty at real artifact cost. Price improvements against observed frequency.
 5. **Ceremony-shaped output**: PRDs, harnesses, roles, and fan-outs produced because the
@@ -69,22 +72,24 @@ not. If a big design gets killed later, the recon it triggered was still the val
 ## Delegation calculus (subagents are machinery too)
 
 Fan out only when it buys something real: genuinely parallel INDEPENDENT implementation
-lanes, isolation of a heavy read that would drown your context, or an adversarial pass
-on something you wrote yourself. One file's fix does not need an implementer; a
-question does not need a researcher. When you do fan out: locked designs, disjoint
-files, you judge everything personally. Killing agents whose design you've outgrown is
-cheap BEFORE anything ships - pivot early, keep the recon, discard the artifacts
-without sentimentality.
+lanes, isolation of a read that would take your context use past
+`DEFAULT isolate_read_at = 60 %` of your context window, or an adversarial pass on
+something you wrote yourself. One file's fix does not need an implementer; a question
+does not need a researcher. When you do fan out: locked designs, disjoint files, you
+judge everything personally. When a locked design changes, stop every agent still
+working from the old one BEFORE anything ships, while stopping is cheap - keep the
+recon, discard the artifacts without sentimentality.
 
 ## Done means
 
-The mechanism is interrupted and proven; the diff is as small as the mechanism allows;
-existing laws are honored; what was deliberately not built is recorded with reasons;
-and one honest sentence states frequency/blast-radius of what remains. If the fix grew
-past what Phase 1's evidence supports, stop and re-derive - the fault is usually a
-design carrying a dead justification.
+The mechanism is interrupted and proven; every hunk of the diff either interrupts the
+mechanism or is required by an existing law; existing laws are honored; what was
+deliberately not built is recorded with reasons; and one honest sentence states
+frequency/blast-radius of what remains. If any part of the fix serves no mechanism,
+occurrence or law that Phase 1 found, stop and re-derive - start with tell 2, a design
+carrying a dead justification.
 
-## The close - four lines, printed
+## Closing block (required) — The close - four lines, printed
 
 ```
 SIZE        what this turned out to be (question / one-liner / system change), from Phase 0
