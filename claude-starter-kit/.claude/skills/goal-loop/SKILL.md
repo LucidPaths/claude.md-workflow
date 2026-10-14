@@ -178,8 +178,9 @@ agent's green report is a claim, not evidence.
    scope creep.
 2. **Gates**: run the slice's proof yourself at the level its change type requires
    (`/fleet-economics` §3.2-3.3): the gap's programmatic truth, the static checks, the slice's
-   new checks, and a full-suite run for the exact candidate head (yours in single-agent mode;
-   the slice manager's log in fleet mode — never a third run of the same head). Where
+   new checks, and the one full-suite log for the exact candidate head (the builder's; in
+   fleet mode the slice manager's), never a second run of the same head; your own full run
+   is on the final tree (Phase 5). Where
    automated gates can't reach (client UX, visual behavior), verify directly — e.g. drive the
    real app with a scripted browser and assert the exact copy/DOM states; send the user
    screenshots as evidence — and only for the change types the ladder names.
