@@ -13,8 +13,14 @@ Distilled from battle-tested patterns in the [HIVE](https://github.com/LucidPath
 
 ## The Skills
 
-Eight invocable disciplines. **This is the part most worth stealing** — they work as prompts for
+Eleven invocable disciplines. **This is the part most worth stealing** — they work as prompts for
 any model, with or without the rest of the kit.
+
+**The way in.** If you are not sure which of the others applies, ask this one first.
+
+| Skill | Use it when |
+|-------|-------------|
+| `/pick-skills` | Before a broad task, or whenever the method is not obvious. It reads every skill the session can invoke, matches them to the task's phases and prints the chain it will run. Automatic loading is a guess made from one sentence of description; this makes the choice on purpose — and says plainly when nothing fits instead of stretching a near-miss over the gap. |
 
 **Start with these two.** They cover the two moments most work goes wrong.
 
@@ -32,13 +38,15 @@ any model, with or without the rest of the kit.
 | `/rigor` | On a reasoning problem with no artifact yet. Keeps verified, inferred and assumed separate all the way into the output. |
 | `/scalpel` | When the right *size* of a fix is part of the question. Machinery scales with evidence of need, never with the gravity of the invocation. |
 
-**These two are advanced.** They assume a large session or a multi-agent setup — skip them until you
+**These four are advanced.** They assume a large session or a multi-agent setup — skip them until you
 want that.
 
 | Skill | Use it when |
 |-------|-------------|
 | `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree. |
+| `/blueprint` | Before a build that spans several steps, owners or contracts. Facts before design, design before code, refutation before approval: a fact inventory, locked design principles, a gap ledger whose every proof has a negative control, and a blind critic who never sees the orchestrator's reasoning. A plan reviewed only by its author is a wish list. |
 | `/goal-loop` | Closing a set of gaps end to end with subagents. Every gap declares its terminating proof *before* work starts; "the agent said so" never counts. |
+| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, never puts a critic below the flagship tier, and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
 
 ### Why folder format matters
 
@@ -136,6 +144,7 @@ claude-starter-kit/
 │   │   ├── precommit-doc-check.py     # Blocks commits missing doc updates
 │   │   └── _state_utils.py            # Shared utilities for state hooks
 │   └── skills/                        # folder format - a flat .md never registers
+│       ├── pick-skills/SKILL.md
 │       ├── adversarial-review/SKILL.md
 │       ├── proof/SKILL.md
 │       ├── rigor/SKILL.md
@@ -143,7 +152,9 @@ claude-starter-kit/
 │       ├── scalpel/SKILL.md
 │       ├── unverified/SKILL.md
 │       ├── shippable/SKILL.md
-│       └── goal-loop/SKILL.md
+│       ├── blueprint/SKILL.md
+│       ├── goal-loop/SKILL.md
+│       └── fleet-economics/SKILL.md
 ├── samples/                              # Filled-in examples from real projects
 └── docs/
     ├── PRINCIPLE_LATTICE.md           # 5 axiomatic design principles
@@ -221,7 +232,7 @@ Six lifecycle hooks registered in `.claude/settings.json`:
 
 ### 4. Skills (the disciplines)
 
-Eight invocable disciplines, covered in **[The Skills](#the-skills)** above. They are listed last here
+Eleven invocable disciplines, covered in **[The Skills](#the-skills)** above. They are listed last here
 and first in the document on purpose: they are the layer you can lift out and use anywhere, while the
 three layers below only matter if you adopt the kit itself.
 
@@ -392,6 +403,40 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-10-14 — Planning, Economics and the Way In
+
+Three skills added and two brought up to the practice they were distilled from. The new ones cover
+what comes before and around `/goal-loop`: choosing the method, planning the build, and paying for it.
+
+**Added:**
+- **`/pick-skills`**, the way in. Automatic loading guesses from one sentence of description; this
+  reads every skill the session can invoke, matches them to the task's phases, prints the chain in a
+  closing block, and names the phases no skill covers instead of stretching a near-miss over them
+- **`/blueprint`**, the plan phase as a team: the user's rulings verbatim, a fact inventory by
+  parallel workers with a script-verified requirements extract, locked design principles, a gap
+  ledger in which every proof carries a negative control, and a review triad whose blind critic never
+  sees the orchestrator's reasoning. Its closing block puts the critic's last verdict into what the user
+  approves
+- **`/fleet-economics`**, the single source for model routing, critic tiers, the verification ladder
+  and token rules. Builders are routed by risk, judgment is never economised, and each check runs at
+  the one level where it proves something — the full suite once per candidate, not once per layer
+
+**Changed:**
+- **`/goal-loop`**: a negative-control column in the gap ledger, decided before dispatch; an identity
+  gate on every judged head; relay nothing unverified; isolation and integration rules (one worktree
+  per implementer, one PR per feature, the agent publishes only after judgment, deploy as a separate
+  go); a fleet mode for long runs, with `/blueprint` as its plan phase; slice managers rotated after
+  about three rounds, and canonical forms instead of ever more bad ones when every review finds a new
+  surface form of the same defect. Model routing and test economy moved out to `/fleet-economics`, so
+  the critic is no longer mid-tier by default. It now ends with the programmatic truth table as a
+  required block
+- **`/adversarial-review`**: a fourth grounding step for the structural defects tests rarely catch
+  (a crossed boundary, a second source of truth, an unversioned contract change, a failure returned as
+  an empty result). A finding the disprover could not kill is now **Unresolved**, not Confirmed, and
+  goes into a residual-risk section — failure to refute is not proof
+- `tests/test_hooks.py` 42 to 45, from the per-skill frontmatter check; no test code changed. The kit
+  README's expected count, still 34 after the guards added eight, now matches
 
 ### 2026-08-31 — Subtraction Pass
 
