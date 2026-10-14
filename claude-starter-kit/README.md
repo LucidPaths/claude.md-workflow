@@ -34,7 +34,7 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `.claude/hooks/session-end.py` | Claude Code | Auto-persists working state on graceful session exit |
 | `.claude/hooks/precommit-doc-check.py` | Claude Code | Blocks commits where code is staged but no docs are |
 | `.claude/hooks/_state_utils.py` | Claude Code | Shared utilities for state management hooks |
-| `.claude/skills/<name>/SKILL.md` | Fixed | 8 invocable disciplines — see **The Skills** below |
+| `.claude/skills/<name>/SKILL.md` | Fixed | 11 invocable disciplines — see **The Skills** below |
 | `docs/research-then-implement.md` | Reference | Two-phase pattern: research, write a decision, then implement with fresh context |
 | `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
 | `samples/` | Reference | Filled-in examples from real projects showing what adapted files look like |
@@ -98,7 +98,7 @@ The `WORKING_STATE.md` pattern gives the AI persistent working memory across ses
 The "Before Submitting Changes" section isn't a generic checklist — each rule exists because a specific real bug prompted it. The lattice check works when you enforce it actively on every change, not as a checkbox to skim past.
 
 ### Verification Disciplines
-Eight skills, each a way of not fooling yourself: `/adversarial-review` (overclaim in opposing directions, then adjudicate), `/proof` (the check that silently lied), `/rigor` (verified vs inferred vs assumed), `/paranoia` (one defect class per pass, to convergence), `/scalpel` (size the fix to the evidence), `/unverified` (where the "I don't know" died), `/shippable` (can a stranger run it), `/goal-loop` (nothing is done without a pre-declared machine-checkable proof).
+Eleven skills, each a way of not fooling yourself: `/pick-skills` (the discipline chosen on purpose, not guessed), `/adversarial-review` (overclaim in opposing directions, then adjudicate), `/proof` (the check that silently lied), `/rigor` (verified vs inferred vs assumed), `/paranoia` (one defect class per pass, to convergence), `/scalpel` (size the fix to the evidence), `/unverified` (where the "I don't know" died), `/shippable` (can a stranger run it), `/blueprint` (a plan reviewed only by its author is a wish list), `/goal-loop` (nothing is done without a pre-declared machine-checkable proof), `/fleet-economics` (the same proof run three times proves nothing new).
 
 ### Automatic Maintenance (Claude Code)
 Session hooks ensure docs stay current and working state is updated. The stop hook blocks if code changed but maintenance wasn't done. These require Claude Code — other tools get the standards but not the automation.
@@ -107,6 +107,7 @@ Session hooks ensure docs stay current and working state is updated. The stop ho
 
 | Skill | Use it when |
 |-------|-------------|
+| `/pick-skills` | Before a broad task, or when you are unsure which skill fits. Prints the chain it will run, and the gaps no skill covers. |
 | `/adversarial-review` | Before merging a diff. Two passes overclaiming in opposite directions, then adjudication. |
 | `/proof` | Before trusting a migration, dedup, backfill, mass-edit, or any "is it actually done?" claim over real data. |
 | `/rigor` | On a reasoning problem with no artifact yet. Closes with a verified / inferred / assumed ledger. |
@@ -114,7 +115,9 @@ Session hooks ensure docs stay current and working state is updated. The stop ho
 | `/scalpel` | When the right *size* of a fix is part of the question. |
 | `/unverified` | On anything producing claims from incomplete input, especially with a model in the loop. |
 | `/shippable` | Before submitting, demoing, or handing over. |
+| `/blueprint` | Before a build that spans several steps, owners or contracts: inventory, locked design, a gap ledger with negative controls, a blind critic, the user's approval. |
 | `/goal-loop` | To close a set of gaps end to end with subagents you judge rather than trust. |
+| `/fleet-economics` | When subagents do the work: which model tier builds and critiques each slice, and the cheapest test level that proves it. |
 
 ### Why folder format matters
 
@@ -161,7 +164,7 @@ Safe to re-run. A pre-existing hook this script did not install is reported and 
 Run the hook test to make sure everything parses correctly:
 
 ```bash
-python3 tests/test_hooks.py     # 34/34 expected
+python3 tests/test_hooks.py     # 45/45 expected
 ```
 
 The suite checks that hooks compile, that `session-start.py` emits the current output envelope,

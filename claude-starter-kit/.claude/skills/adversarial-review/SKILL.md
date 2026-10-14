@@ -14,6 +14,7 @@ Do this first, every time. Skipping it is how reviews miss the obvious.
 1. **Read the actual code.** Pull the real `git diff`, open the changed files, read the function signatures and callers. Never review from memory, from the PR description, or from how similar code "usually" looks.
 2. **Define "correct" for *this* change.** State the concrete success conditions and the invariants it must not break — not generic ones. (e.g. "90/10 split stays exact," "no state transition skips Verified," "no revert path leaves funds locked.")
 3. **List the high-risk surfaces it touches:** money / fund release, access control, state machines, external calls & reentrancy, integer math / overflow, error and revert paths, concurrency, auth flows, anything recently refactored.
+4. **Hunt the structural defects tests rarely catch:** a box boundary crossed (core importing an adapter, an inbound adapter reaching the composition root), a second place that wires the same dependency, a second source of truth for one list or definition, a contract changed without its version step; and on every error path: a failure returned as an empty result ("none" where the read failed), a silent fallback or default (`/unverified`), an error that does not say what happened, why, and what to do.
 
 ## Pass 1: Bug Hunter (overclaim bias)
 
@@ -41,9 +42,10 @@ Be skeptical but honest: only disprove what you can actually disprove, with a ci
 | Issue | Bug Hunter said | Disprover said | Verdict |
 |-------|-----------------|----------------|---------|
 | #1 | Critical: X | Disproved: line N handles it | **False positive** |
-| #2 | Critical: Y | Could not disprove | **Confirmed** |
+| #2 | Critical: Y | Could not disprove | **Unresolved** until a reproduction or sufficient code proof supports it |
+| #3 | Critical: Z | Reproduced: input I gives wrong output O | **Confirmed** |
 
-Then output a clean report of **confirmed issues only**, ranked by severity. For each confirmed issue give the concrete triggering input and the minimal fix.
+Then output a clean report: **confirmed defects** ranked by severity, each with the concrete triggering input, the evidence (state whether it rests on execution or on sufficient code proof) and the minimal fix; then a separate **residual risk** section for unresolved material concerns. Never silently drop an unresolved concern and never promote it to confirmed. Failure to refute is not proof.
 
 Run this final pass **as the person who inherits the code and gets paged when it breaks at 3am** — not as its author. The author wants it to be done; the inheritor wants it to be right.
 
