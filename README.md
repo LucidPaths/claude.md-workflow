@@ -340,7 +340,8 @@ This is essentially **agentic MapReduce** — map work across N isolated session
 
 **`/goal-loop` is the disciplined version of this pattern**, and if you steal one thing, steal that
 one. It adds what the diagram is missing: the orchestrator locks every design decision *before*
-dispatch, never accepts an agent's self-report as evidence, re-runs every gate personally, and
+dispatch, never accepts an agent's self-report as evidence, re-runs every gate itself (in fleet
+mode slice managers run the per-slice gates and its own scripted check is the acceptance), and
 terminates only when each gap has a pre-declared machine-checkable proof.
 
 ## Edge Cases: Model Degradation and Weaker Models

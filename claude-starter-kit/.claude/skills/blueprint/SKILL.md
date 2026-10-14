@@ -46,8 +46,9 @@ Settle, and write down verbatim:
 - **Goal and target**: what exists at the end, and by when ("a prototype heading towards X by the end of the week").
 - **In and out**: what the user explicitly excludes ("no feature creep", "the export is not scope"), and what is
   somebody else's (another team's UI, a client's infrastructure).
-- **Lane**: which ticket or work package every part books on, and where a part fits better on a card it cannot book on
-  (note it, never book on another person's card). No lane, no work.
+- **Lane**: which ticket or work package every part books on (records its time and cost against), and where a part
+  fits better on a card (another ticket) it cannot book on (note it, never book on another person's card). No lane,
+  no work.
 - **Owners**: who decides what (the user, the product owner, the client). Commercial, contractual and scope points are
   the user's; technical design is the orchestrator's within the user's rulings.
 - **Constraints**: local only, which machine and disk, memory limits, which models for which roles, deadlines.
@@ -82,10 +83,10 @@ Every agent reads them first. They make dispatches short and keep the orchestrat
    no secrets, no customer data, stage by path, same-change documentation rules, contract versioning.
 4. Proof rules: measured / read / inferred per claim; a negative control for every fix that matters; a checker shown to
    fire on a planted defect; `/paranoia` before every report by managers and critics.
-4a. Models and test economy: the instance of `/fleet-economics` for this job — the roles and models of its §2 with the
+5. Models and test economy: the instance of `/fleet-economics` for this job — the roles and models of its §2 with the
    user's effort rulings, and this repository's verification levels discovered per its §3.1 (the commands named).
-5. Roles: orchestrator, managers, workers, advisor, blind critic, checker; who may read what.
-6. Report shape: steps, results with evidence, deviations with reasons, open points, files written; a report file plus a
+6. Roles: orchestrator, managers, workers, advisor, blind critic, checker; who may read what.
+7. Report shape: steps, results with evidence, deviations with reasons, open points, files written; a report file plus a
    message of at most 150 words.
 
 ### 2.3 PRD (one per job, `<date>-<ID>-prd.md`)
@@ -176,7 +177,7 @@ design traps, schema mechanics, stale wording) and may consult the advisor.
 
 ## 6. The review triad (in parallel, all read-only)
 
-### 6.1 Advisor (strong model; may read the primer and the orchestrator transcript)
+### 6.1 Advisor (strongest tier per `/fleet-economics`; may read the primer and the orchestrator transcript)
 Answers, with evidence, ranked by impact:
 1. Does the plan build what the user asked for, in the user's own words? Where does it fall short or overreach?
 2. The data or environment question: does the plan really use what the user expects (for example real data), and if not,
@@ -186,7 +187,7 @@ Answers, with evidence, ranked by impact:
 5. Slicing: order, size, file boundaries; can each PRD be executed by a fresh agent; are proofs and controls real?
 6. Machine and time: realistic for the deadline and the hardware? What to merge or cut.
 
-### 6.2 Blind critic (strong model; the strongest review)
+### 6.2 Blind critic (strongest tier; the strongest review)
 - **Must not open**: the primer, the ledger, the inventory's opinions, any agent report, the advisor's file, the
   orchestrator's revision files, any transcript. If a PRD says "read the primer", the critic ignores it.
 - **Reads**: the protocol (rules only), the requirements extract (its spec), the plan and the step PRDs (the artifact),
@@ -199,7 +200,7 @@ Answers, with evidence, ranked by impact:
   I could not turn into a failure"; a verdict: SHIP / FIX FIRST (list) / REDESIGN. Loads `/adversarial-review`, runs
   `/paranoia` over its own findings.
 
-### 6.3 Contract and tracker checker (strong model; may spawn a tracker worker and a contract worker)
+### 6.3 Contract and tracker checker (flagship tier or above; may spawn a tracker worker and a contract worker)
 - Checks **every open choice, every seam and the out list** against all tickets the work touches, **current and
   future-dated**, and against the **signed** contract and its annexes. Finds the contract; never guesses; separates
   signed documents from drafts.

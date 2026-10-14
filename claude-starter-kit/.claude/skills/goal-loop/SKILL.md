@@ -1,13 +1,14 @@
 ---
 name: goal-loop
-description: Audit-primed autonomous goal loop — self-define a gap ledger from evidence, dispatch specialized implementer subagents with locked designs, judge every slice yourself (gates + diff review + negative control + blind adversarial critic), loop agents back on violations, and terminate only on programmatic truth. Use when the user asks to close a set of gaps/points/backlog items end-to-end, says "run the goal loop", or invokes /goal-loop. Not for a single small fix (just do it), not for planning without execution, not for reviewing one outward deliverable.
+description: Audit-primed autonomous goal loop — self-define a gap ledger from evidence, dispatch specialized implementer subagents with locked designs, judge every slice (yourself, or through slice managers in fleet mode: gates + diff review + negative control + blind adversarial critic), loop agents back on violations, and terminate only on programmatic truth. Use when the user asks to close a set of gaps/points/backlog items end-to-end, says "run the goal loop", or invokes /goal-loop. Not for a single small fix (just do it), not for planning without execution, not for reviewing one outward deliverable.
 ---
 
 # Goal Loop — Designer, Judge, Verifier, Support
 
-You are the orchestrator. Subagents implement; **you decide**. You never delegate judgment,
-and you never accept an agent's self-report as proof. The loop terminates only when every
-gap has machine-checkable evidence of being closed.
+You are the orchestrator. Subagents implement; **you decide**. You never delegate the final
+judgment (in fleet mode slice managers run the per-slice judgment protocol, and your scripted
+check accepts or rejects), and you never accept an agent's self-report as proof. The loop
+terminates only when every gap has machine-checkable evidence of being closed.
 
 Invocation: `/goal-loop <gap list | "self-define from audit"> [budget hint]`
 
@@ -166,7 +167,8 @@ Every implementer prompt must contain, in this order:
 
 ## Phase 4 — Judgment protocol (per slice)
 
-Run all of these yourself; an agent's green report is a claim, not evidence.
+Run all of these yourself (in fleet mode the slice manager runs them, Fleet mode item 3); an
+agent's green report is a claim, not evidence.
 
 1. **Diff review**: read the actual diff. Check it against the locked design AND the
    repo's standards/laws (contract single-sourcing, validation-before-canon, no dead code,
@@ -264,10 +266,11 @@ has more than a few slices or must survive a context compaction.
    the orchestrator's context; the orchestrator re-reads nothing big.
 2. **Plan phase as a team (full procedure: `/blueprint`):** an inventory manager with workers
    (facts with file:line, plus a verbatim requirements extract), a planner (plan, gap ledger,
-   one PRD per slice), an **advisor** (strong model; may read the primer and the orchestrator
-   transcript), one **blind critic** (strong model; reads only the requirements extract, the
-   artifact and the code, never the primer, ledger, reports or transcripts), and a checker of
-   every choice against the tracker's current AND future-dated items and the signed contract.
+   one PRD per slice), an **advisor** (strongest tier; may read the primer and the orchestrator
+   transcript), one **blind critic** (strongest tier; reads only the protocol's rules, the
+   requirements extract, the artifact and the code, never the primer, ledger, reports or
+   transcripts), and a checker of every choice against the tracker's current AND future-dated
+   items and the signed contract.
    Revise until the blind critic clears; the user approves the plan.
 3. **Slice managers judge, the orchestrator checks.** One manager per slice spawns the
    implementer, reads the diff, runs the gates and every negative control itself, spawns a
@@ -297,10 +300,11 @@ has more than a few slices or must survive a context compaction.
 9. **Local first:** no push, PR, tracker task or time record until the user has gone through
    the whole line; the orchestrator's few approved tracker moves are logged in the ledger.
 10. **Test economy:** `/fleet-economics` §3 (change type → cheapest proving level; the full
-    suite once per candidate by the slice manager on the clean committed head, once on the
-    whole line by the orchestrator before any PR; browser and live-model runs only at the
-    release candidate, for the change types that need them). The final assurance is
-    unchanged: a full run exists for every candidate and for the whole line.
+    suite once per candidate, run by the slice manager on the builder's clean committed head
+    (the builder does not run it), once on the whole line by the orchestrator before any PR;
+    browser and live-model runs only at the release candidate, for the change types that need
+    them). The final assurance is unchanged: a full run exists for every candidate and for the
+    whole line.
 11. **Rotate a slice manager after about three review rounds** (one slice ran ten rounds; its
     manager's context neared 800 k tokens and one worker overflowed): a long-lived manager
     gets slow on every turn and loses detail; hand the slice to a FRESH manager with a
@@ -313,7 +317,8 @@ has more than a few slices or must survive a context compaction.
 
 ## Hard rules
 
-- Agents implement; the orchestrator designs, judges, verifies, supports. No exceptions.
+- Agents implement; the orchestrator designs, judges, verifies, supports. In fleet mode slice
+  managers run the per-slice judgment and the orchestrator's scripted check is the acceptance.
 - **The shape of the loop:** task → brainstorm with the user until the orchestrator provably
   understands it → orchestrator scopes the roadmap → segments it into pedantically scoped
   single features → writes ONE locked PRD per feature → dispatches ONE implementer per

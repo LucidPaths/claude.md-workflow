@@ -112,9 +112,10 @@ the host app; M = opt-in live tests with a real key.
 ### 3.3 Who runs what
 
 - **Builder:** the narrow levels while working; F once on its clean committed head, with a log whose first line names
-  that head; negative controls only on the test files that guard the fix.
+  that head; negative controls only on the test files that guard the fix. In fleet mode the slice manager runs this one
+  F on the builder's head instead, and the builder does not.
 - **Orchestrator, per slice:** the scripted gate only — the gap's programmatic proof, its negative control, commit
-  identity, line endings, nothing pushed — plus the builder's F log for the exact head. Not F again.
+  identity, line endings, nothing pushed — plus the one F log for the exact head. Not F again.
 - **Integration line:** F once after the last slice; CI at publication; B and M at the release candidate, only for the
   change types in 3.2 that call for them.
 - **A skipped level is a decision, not an omission:** the plan names it ("B not run: wording only"), so the judge and the
