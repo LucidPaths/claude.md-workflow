@@ -32,5 +32,5 @@ ASSUMED    claim -> what would have to be true, and what breaks if it is not
 ```
 
 A claim that fits none of the three is not a claim, it is a guess — cut it, or move it to
-ASSUMED with its cost attached. If ASSUMED is empty on a non-trivial task you did not look
-hard enough: name the thing you are taking on trust.
+ASSUMED with its cost attached. "None material" is valid when justified; do not invent
+assumptions to fill the form.

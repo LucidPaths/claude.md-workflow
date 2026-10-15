@@ -58,7 +58,7 @@ Pick a single field the system genuinely cannot know. Follow it, by hand, end to
 the screen still marked as missing. In most systems it dies somewhere in the middle, and everything
 downstream inherits a fact that was never true.
 
-Do this for three fields. It takes twenty minutes and it is the highest-yield review you can run.
+Start with a representative unsupported field, then cover distinct high-consequence paths. Duration and yield depend on the system; no comparative benchmark is supplied here.
 
 ## The naming test
 

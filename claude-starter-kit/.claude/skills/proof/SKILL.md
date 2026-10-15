@@ -16,12 +16,12 @@ The thesis: **"the check passed" is not "the thing is true."** Most data-op disa
 A check that can only pass is not a check.
 
 - **Confirm the query ran against what you think it did:** real column / identifier names (a clean zero from the *wrong column name* is worse than no query at all), the **specific** table or scope (not "the field exists somewhere"), the right database / pod / cluster.
-- **A null join, an empty result, a "skipped" is NOT a pass.** Make checks assert loudly. Before trusting that a check passed, prove it *can* fail — feed it a known-bad case and watch it catch.
+- **A null join, an empty result, a "skipped" is NOT a pass.** Make checks assert loudly. Before trusting that a check passed, prove it *can* fail — feed it a known-bad case in an isolated fixture or clone and watch it catch. Never introduce faults into production to prove a check.
 - **Count with real `count(*)`, never an estimate** (`reltuples` / `n_live_tup` are stale by design).
 
 ## Match reality, not your assumptions
 
-- **Identify rows by a stable natural key** (name / email / code), never by position or a mutable property. "`id == id`" across two systems is the assumption that overwrites the wrong rows.
+- **Verify identity and uniqueness before matching rows.** A name, email or code is not automatically unique or immutable; check the key contract, never match by position or an unverified mutable property. "`id == id`" across two systems is the assumption that overwrites the wrong rows.
 - **Never validate a snapshot against a moving source.** Freeze the source, then compare the whole frozen window — two coincidentally-unchanged tables look like perfect parity and aren't.
 - **Exclude re-serialized or intentionally-divergent columns** from parity hashes, or you'll "find" edits that were never made — and a gate must understand *intended* difference, not flag it as drift.
 
@@ -31,7 +31,9 @@ Rehearse the operation on a throwaway clone that **matches the target's real con
 
 ## Before you destroy anything
 
-- **Back up first**, and verify the backup is non-empty and restorable.
+- **Bind the mutation to its target and predecessor.** Confirm scope, candidate version and authorization before writing. Back up that exact predecessor (not whichever backup is newest), verify restoration on an isolated target, and stop if the source changed since inspection.
+- **Preserve state on failure.** Failed reads are not empty state. Use transactions or same-directory atomic replacement where supported; do not truncate the predecessor before the replacement is ready. Atomic replacement alone does not serialize concurrent writers.
+- **Read back the exact target after mutation.** A successful command is not proof the intended state reached its consumer.
 - **Canonical-confirmed-then-delete:** confirm the correct entry is in place, *then* remove the wrong one. Deletion after confirmation isn't dataloss — but hoarding tagged zombies isn't cleanup either.
 
 ## Done when

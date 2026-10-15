@@ -1,2 +1,5 @@
 __pycache__/
 *.pyc
+.claude/hook-data/
+/WORKING_STATE.md
+/docs/WORKING_STATE.md

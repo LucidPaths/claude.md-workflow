@@ -23,13 +23,13 @@
 **Stop.** Check git history. Maybe a past version worked. Maybe revert, not rewrite.
 
 ### Trap 4: "I think the user wants..."
-**Stop.** If the request is ambiguous, **ask** — don't infer. The cost of asking is near zero. The cost of building the wrong thing is an entire session.
+**Stop.** Ask when ambiguity changes authority, consequence, or the deliverable. Otherwise state a reasonable interpretation and proceed; do not turn harmless uncertainty into a blocking question.
 
 ### Trap 5: "This looks correct to me" / "This should work now"
-**Stop.** Both are assertions wearing the costume of a conclusion. Prove it — trace the logic, find a concrete input that exercises the path, run it, show the output. Every claim needs evidence from a tool call made *after* the change. The forbidden phrases and the four-step evidence procedure live in `quality-gate.md`; this trap is the moment you catch yourself about to skip them. Before merging, run `/adversarial-review`.
+**Stop.** Both are assertions wearing the costume of a conclusion. Prove it — trace the logic, find a concrete input that exercises the path, run it, show the output. Every claim needs evidence from a tool call made *after* the change. The forbidden phrases and the four-step evidence procedure live in `quality-gate.md`; this trap is the moment you catch yourself about to skip them. Use `/adversarial-review` when the change risk or repository policy calls for independent criticism.
 
 ### Trap 6: "I'll fix this one place" / "I'll add it to the validation list"
-**Stop.** One failure, two axes. **Across files:** the same mistake exists in 3-5 other places you simply haven't hit yet — grep for the pattern, then fix every instance or fix none. **Across layers:** if validation, security or permissions exist in two places (client + server, two languages, two config files), update **both**, now, before calling it done. One fix creates a false sense of safety; a one-sided update is worse than no update at all. (Coding Standards #4 and #8 are the rules; this trap catches the moment.)
+**Stop.** One failure, two axes. **Across files:** the same mechanism may recur — search for it, fix the in-scope instances, and explicitly carry the others. **Across layers:** if validation, security or permissions exist in two places (client + server, two languages, two config files), update **both**, now, before calling it done. One fix creates a false sense of safety; a one-sided update is worse than no update at all. (Coding Standards #4 and #8 are the rules; this trap catches the moment.)
 
 ### Trap 7: "Let me try one more fix"
 **Stop.** Three failed fixes on the same issue means you are guessing, not debugging. State what you tried, what failed, and ask for direction. Do not attempt a fourth fix.

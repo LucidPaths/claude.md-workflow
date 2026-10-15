@@ -76,9 +76,9 @@ An error that says "something went wrong" is itself a bug. Every error says what
 
 > *Cure the root cause. Don't treat symptoms.*
 
-When you find a bug, the bug is never alone. The same mistake exists in 3-5 other places. Search for the pattern, fix every instance. If a design keeps producing the same class of bug, the design is wrong — not the individual bugs.
+When you find a bug, the same mechanism may recur elsewhere. Search for the pattern, fix the in-scope instances, and record what remains. If a design keeps producing the same class of bug, the design is wrong — not the individual bugs.
 
-**The test:** Did you grep for the same mistake elsewhere? Did you fix all instances?
+**The test:** Did you search for the same mechanism? Are all in-scope instances fixed and any remaining ones explicitly recorded?
 
 **Instantiations:**
 - Found missing null check — grepped all `.property` accesses, fixed 4 more

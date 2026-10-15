@@ -23,6 +23,7 @@ import os
 import re
 import subprocess
 from datetime import datetime
+from _state_utils import get_state_path
 
 
 def get_project_root():
@@ -80,37 +81,20 @@ def get_next_steps(project_root):
 
 def get_working_state(project_root):
     """Read the working state file if it exists."""
-    # Check both docs/WORKING_STATE.md and WORKING_STATE.md
-    for rel_path in ['docs/WORKING_STATE.md', 'WORKING_STATE.md']:
-        state_path = os.path.join(project_root, rel_path)
-        if not os.path.exists(state_path):
-            continue
-        try:
-            with open(state_path, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-            if not content:
-                continue
-            # Cap at 2000 chars to avoid bloating context
-            if len(content) > 2000:
-                content = content[:2000] + "\n\n*[Working state truncated — read the full file for details]*"
-            return content
-        except Exception:
-            pass
-    return ""
-
-
-def get_state_file_path(project_root):
-    """Find the working state file path."""
-    for rel_path in ['docs/WORKING_STATE.md', 'WORKING_STATE.md']:
-        path = os.path.join(project_root, rel_path)
-        if os.path.exists(path):
-            return path
-    return None
+    state_path = get_state_path(project_root)
+    try:
+        with open(state_path, encoding='utf-8') as f:
+            content = f.read().strip()
+        if len(content) > 2000:
+            content = content[:2000] + "\n\n*[Working state truncated — read the full file for details]*"
+        return content
+    except (OSError, UnicodeError):
+        return ""
 
 
 def get_time_since_last_session(project_root):
     """Check when working state was last modified to estimate time gap."""
-    state_path = get_state_file_path(project_root)
+    state_path = get_state_path(project_root)
     if not state_path:
         return None
     try:
@@ -238,7 +222,7 @@ def main():
         lines.append(snapshot)
 
     lines.append("")
-    lines.append("*Read CLAUDE.md for coding standards. Update docs/WORKING_STATE.md as you work.*")
+    lines.append("*Read CLAUDE.md for coding standards. Update the existing WORKING_STATE.md as you work.*")
 
     output = {
         "hookSpecificOutput": {

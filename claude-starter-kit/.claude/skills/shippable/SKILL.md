@@ -48,8 +48,8 @@ for b in $(git branch -r | grep -v HEAD); do
 done
 ```
 
-If another branch has meaningfully more files than the default, your work is somewhere nobody will look.
-Merging costs minutes; being judged on three quarters of your project costs everything.
+A file-count difference is a discovery hint, not proof of missing work. Inspect the actual diff and
+acceptance criteria. Publish or merge only with the required authorization; a PR-only handoff stays unmerged.
 
 **2. Understand.** Can they say what this is in thirty seconds? Open your README as a stranger. If it
 still says `create-next-app` or `# Project`, you have written a product and shipped an anonymous folder.
@@ -93,7 +93,7 @@ and "I watched it work without asking them".
 
 ## The cold-clone test
 
-The gates are the checklist. This is the actual test, and it takes fifteen minutes:
+The gates are the checklist. Exercise the actual consumer path; duration depends on the project:
 
 1. Clone your repository into a **fresh empty directory** — not your working copy.
 2. Follow your own README **literally**. Type only what it says.
@@ -102,6 +102,14 @@ The gates are the checklist. This is the actual test, and it takes fifteen minut
 
 That list is your defect list, in priority order. Nothing else you do this week will improve how your work
 is received as much as fixing it.
+
+## Qualification boundary
+
+Keep **implemented**, **repository-tested**, **installed-host verified**, **merged**, **deployed**
+and **consumer-verified** separate. Bind test/review evidence to the exact candidate; after an
+authorized external write, read back that target. A smoke suite or stand-in proves only its own
+path, not a live integration. If the required runtime is unavailable, report the blocker rather
+than synthesizing a successful run. Do not deploy or merge merely to complete this checklist.
 
 ## The verdict
 
@@ -112,7 +120,7 @@ COSTS    what they conclude about the work because of it
 FIX      the change, and roughly how many minutes
 ```
 
-Sort by minutes ascending. Most of this list will be under ten each, which is the point.
+Prioritize by consequence and delivery blockage, then effort. Cheap cosmetic changes do not outrank a broken consumer path.
 
 ## One thing that is not about the code
 
