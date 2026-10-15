@@ -183,9 +183,13 @@ PreToolUse uses `hookSpecificOutput` with `hookEventName`, `permissionDecision: 
 Registered commands use the host's `CLAUDE_PROJECT_DIR` (quoted for spaces).
 
 - The doc reminder recognizes literal `git [-C dir] commit`, optionally after `cd dir &&`,
-  common message flags, amend and `-a`/`--all` tracked changes. It never executes the supplied
-  shell command. Aliases, wrappers, expansion, pathspec commits, message files and compound
-  mutation commands are not interpreted; review these manually. It is not a shell security policy.
+  common message flags, amend and `-a`/`--all` tracked changes. For `-a`, it updates a temporary
+  copy of the index and compares the net candidate to HEAD (or the empty tree on unborn branches).
+  Canceling staged/worktree edits do not count. The real index is not staged or refreshed and no
+  commit is created; Git may run configured clean filters and write blobs while preparing the copy.
+  It never executes the supplied shell command. Aliases, wrappers, expansion, pathspec commits,
+  message files and compound mutation commands are not interpreted; review these manually.
+  It is not a shell security policy.
 - Test classification uses directory/name conventions, not `test`/`spec` substrings.
   Markdown/reStructuredText and named text docs suppress the reminder; an unrelated `.txt`
   does not. Staging a doc still does not prove relevance. To acknowledge a code-only commit,
@@ -194,8 +198,10 @@ Registered commands use the host's `CLAUDE_PROJECT_DIR` (quoted for spaces).
   if neither exists, new state goes under `docs/`. Keep only one authoritative file.
 - Missing, unreadable or unsupported transcripts do not clear existing state. Flat records and
   nested `message` records are supported; only sections with usable new context are refreshed.
-  Other sections (including custom ones and horizontal rules) remain intact. Failed predecessor
-  reads abort the write; replacement is atomic, but **not** a concurrent-writer lock.
+  Other sections (including custom ones and horizontal rules) remain intact. Level-two section
+  headings inside backtick/tilde fences are ignored; closers must use the same marker and at least
+  the opening length. An unclosed fence skips the update rather than appending inside an example.
+  Failed predecessor reads abort the write; replacement is atomic, but **not** a concurrent-writer lock.
 - Use one session writer per worktree. The shared compaction snapshot is not session-isolated;
   crash recovery and concurrent-session behavior are not qualified by these tests.
 - Transcript excerpts and command fragments can be sensitive. State and hook-data are ignored

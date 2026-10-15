@@ -147,6 +147,30 @@ def build_ephemeral_sections(context, trigger_reason="session activity"):
     return '\n'.join(active_lines), '\n'.join(context_lines)
 
 
+def split_state_sections(content):
+    """Split at level-two headings outside fenced code; refuse unclosed fences."""
+    boundaries = [0]
+    offset = 0
+    fence = None
+    for line in content.splitlines(keepends=True):
+        text = line.rstrip('\r\n')
+        marker = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', text)
+        if fence is not None:
+            if (marker and marker[1][0] == fence[0]
+                    and len(marker[1]) >= len(fence) and not marker[2].strip(' \t')):
+                fence = None
+        elif marker and (marker[1][0] == '~' or '`' not in marker[2]):
+            fence = marker[1]
+        elif text.startswith('## ') and offset:
+            boundaries.append(offset)
+        offset += len(line)
+    if fence is not None:
+        # Appending here would put new state inside an unfinished example.
+        return None
+    boundaries.append(len(content))
+    return [content[left:right] for left, right in zip(boundaries, boundaries[1:])]
+
+
 def auto_update_state(transcript_path, trigger_reason="session activity"):
     """Replace only sections with usable new context; retain everything else.
 
@@ -162,7 +186,7 @@ def auto_update_state(transcript_path, trigger_reason="session activity"):
         if os.path.islink(path):
             return False
         try:
-            with open(path, encoding='utf-8') as f:
+            with open(path, encoding='utf-8', newline='') as f:
                 content = f.read()
         except FileNotFoundError:
             content = "# Claude Working State\n"
@@ -173,17 +197,20 @@ def auto_update_state(transcript_path, trigger_reason="session activity"):
         if context['assistant_snippets']:
             replacements['## Conversation Context'] = conversation
         # Only level-two headings delimit sections; horizontal rules are content.
-        parts = re.split(r'(?m)(?=^## )', content)
+        parts = split_state_sections(content)
+        if parts is None:
+            return False
         for index, part in enumerate(parts):
             header = part.split('\n', 1)[0].rstrip()
             if header in replacements:
                 parts[index] = replacements.pop(header).strip() + '\n\n'
         content = ''.join(parts)
         for section in replacements.values():
-            content = content.rstrip() + '\n\n' + section.strip() + '\n'
+            separator = '\n' if content.endswith('\n') else '\n\n'
+            content += separator + section.strip() + '\n'
         directory = os.path.dirname(path)
         os.makedirs(directory, exist_ok=True)
-        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=directory,
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='', dir=directory,
                                          prefix='.working-state-', delete=False) as f:
             temporary = f.name
             f.write(content)

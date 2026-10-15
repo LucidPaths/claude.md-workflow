@@ -9,8 +9,10 @@ import os
 from pathlib import PurePath
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 
 CODE_EXTENSIONS = {
     '.py', '.ts', '.tsx', '.js', '.jsx', '.rs', '.go', '.java', '.rb', '.php',
@@ -82,19 +84,31 @@ def parse_commit(command, cwd):
 
 
 def get_candidate_files(cwd, all_tracked):
-    """Index plus tracked worktree changes for -a; NUL-safe path handling."""
-    commands = [['diff', '--cached', '--name-only', '-z']]
-    if all_tracked:
-        commands.append(['diff', '--name-only', '-z'])
-    files = set()
+    """Net candidate versus HEAD, without writing the real index or worktree."""
+    env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
+
+    def git(*args):
+        return subprocess.run(['git', *args], cwd=cwd, env=env, capture_output=True,
+                              text=True, timeout=5, check=True).stdout
+
     try:
-        for args in commands:
-            result = subprocess.run(['git', *args], cwd=cwd, capture_output=True,
-                                    text=True, timeout=5, check=True)
-            files.update(filter(None, result.stdout.split('\0')))
+        with tempfile.TemporaryDirectory(prefix='doc-check-index-') as temporary:
+            if all_tracked:
+                index = git('rev-parse', '--git-path', 'index').strip()
+                index = os.path.join(cwd, index)
+                candidate = os.path.join(temporary, 'index')
+                if os.path.exists(index):
+                    # Preserve index timestamps so Git still detects racy-clean files.
+                    shutil.copy2(index, candidate)
+                env['GIT_INDEX_FILE'] = candidate
+                # Let Git apply -a's update semantics to a disposable index. A
+                # union of paths (or a stat-only diff) misses canceling edits.
+                git('add', '--update')
+            # --cached compares against HEAD, or the empty tree on unborn branches.
+            output = git('diff', '--cached', '--name-only', '-z', '--')
     except (OSError, subprocess.SubprocessError):
         return None
-    return sorted(files)
+    return sorted(filter(None, output.split('\0')))
 
 
 def is_code_file(path):

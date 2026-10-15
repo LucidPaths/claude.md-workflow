@@ -117,6 +117,86 @@ class CommitTests(Fixture):
         for flag in ['-am fix', '--all -m fix']:
             self.assert_denied(self.doc_check('git commit ' + flag))
 
+    def assert_all_candidate(self, expected, denied):
+        # The reminder must not stage, refresh the index, change files or commit.
+        index = self.root / '.git' / 'index'
+        before_index = index.read_bytes()
+        before_head = self.git('symbolic-ref', 'HEAD')
+        before_refs = self.git('for-each-ref', '--format=%(refname) %(objectname)')
+        before_files = {p.relative_to(self.root): p.read_bytes()
+                        for p in self.root.rglob('*')
+                        if p.is_file() and '.git' not in p.relative_to(self.root).parts}
+        self.assertEqual(commit.get_candidate_files(str(self.root), True), expected)
+        for flags in ['-am fix', '--all -m fix']:
+            result = self.doc_check('git commit ' + flags)
+            if denied:
+                self.assert_denied(result)
+            else:
+                self.assertIsNone(result)
+        self.assertEqual(index.read_bytes(), before_index)
+        self.assertEqual(self.git('symbolic-ref', 'HEAD'), before_head)
+        self.assertEqual(self.git('for-each-ref', '--format=%(refname) %(objectname)'), before_refs)
+        self.assertEqual({p.relative_to(self.root): p.read_bytes()
+                          for p in self.root.rglob('*')
+                          if p.is_file() and '.git' not in p.relative_to(self.root).parts},
+                         before_files)
+        # Actual commits are confined to this disposable fixture, never the source repo.
+        self.git('-c', 'user.name=Test Fixture', '-c', 'user.email=test@example.invalid',
+                 'commit', '--allow-empty', '-qam', 'candidate')
+        actual = self.git('diff-tree', '--root', '--no-commit-id', '--name-only',
+                          '-r', '-z', 'HEAD').split('\0')
+        self.assertEqual(sorted(filter(None, actual)), expected)
+
+    def test_all_canceled_staged_doc_does_not_suppress_reminder(self):
+        doc = self.root / 'README.md'
+        doc.write_text('Original docs\n')
+        self.git('add', 'README.md')
+        self.git('-c', 'user.name=Test Fixture', '-c', 'user.email=test@example.invalid',
+                 'commit', '-qm', 'docs baseline')
+        self.stage_code()
+        doc.write_text('Temporary doc edit\n')
+        self.git('add', 'README.md')
+        doc.write_text('Original docs\n')
+        self.assert_all_candidate(['app.py'], denied=True)
+
+    def test_all_canceled_staged_code_does_not_trigger_reminder(self):
+        self.stage_code()
+        (self.root / 'app.py').write_text('print(1)\n')
+        self.assert_all_candidate([], denied=False)
+
+    def test_all_staged_additions_use_worktree_and_ignore_untracked_docs(self):
+        self.stage_code('new\nfile.py')
+        self.stage_code('removed.py')
+        (self.root / 'removed.py').unlink()
+        (self.root / 'new\nfile.py').write_text('print(3)\n')
+        (self.root / 'README.md').write_text('Untracked docs\n')
+        self.assert_all_candidate(['new\nfile.py'], denied=True)
+
+    def test_all_unborn_candidate_omits_removed_staged_doc(self):
+        self.git('checkout', '--orphan', 'unborn')
+        doc = self.root / 'README.md'
+        doc.write_text('Staged docs\n')
+        self.git('add', 'README.md')
+        doc.unlink()
+        (self.root / 'app.py').write_text('print(3)\n')
+        self.assert_all_candidate(['app.py'], denied=True)
+
+    def test_all_detects_racy_clean_same_size_worktree_change(self):
+        self.git('config', 'core.trustctime', 'false')
+        path = self.root / 'app.py'
+        before = path.stat()
+        # Index time equal to the cached file time forces Git's content check.
+        # A copy with a fresh mtime would incorrectly make the entry look clean.
+        os.utime(self.root / '.git' / 'index', ns=(before.st_atime_ns, before.st_mtime_ns))
+        path.write_text('print(3)\n')
+        os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+        self.assert_all_candidate(['app.py'], denied=True)
+
+    def test_all_keeps_staged_deletion_when_path_is_recreated_untracked(self):
+        self.git('rm', 'app.py')
+        (self.root / 'app.py').write_text('print(1)\n')
+        self.assert_all_candidate(['app.py'], denied=True)
+
     def test_non_commits_do_not_trigger(self):
         self.stage_code()
         for command in ['git status', 'echo "git commit -m fix"']:
@@ -167,6 +247,75 @@ class StateTests(Fixture):
         self.assertIn('New task', path.read_text())
         self.assertIn(retained, path.read_text())
         self.assertTrue(path.read_text().startswith('# Custom title'))
+
+    def test_session_end_preserves_fenced_example_before_or_without_real_task(self):
+        path = self.root / 'WORKING_STATE.md'
+        original = ('# State\n## Corrections\nKeep this literal example:\n```markdown\n'
+                    '## Active Task\nEXAMPLE SENTINEL\n```\n'
+                    'CURATED SENTINEL AFTER FENCE\n## Test Baseline\nBASELINE SENTINEL\n')
+        transcript = self.transcript([{'role': 'user', 'content': 'Continue the current task'}])
+        for real_task in ['', '## Active Task\nOLD TASK\n']:
+            with self.subTest(real_task=bool(real_task)):
+                path.write_text(original + real_task)
+                self.hook('session-end.py', {'transcript_path': transcript, 'reason': 'review'})
+                updated = path.read_text()
+                self.assertTrue(updated.startswith(original), updated)
+                self.assertIn('Continue the current task', updated)
+                self.assertNotIn('OLD TASK', updated)
+                self.assertEqual(updated.count('*Auto-captured from'), 1)
+
+    def test_fence_delimiters_do_not_expose_example_headings(self):
+        path = self.root / 'WORKING_STATE.md'
+        transcript = self.transcript([
+            {'role': 'user', 'content': 'New task'},
+            {'role': 'assistant', 'content': 'New assistant context with sufficient detail.'}])
+        for opening, nonclosers, closing in [
+                ('````markdown', '```\n~~~\n```` trailing text', '`````'),
+                ('~~~markdown', '~~\n```\n~~~ trailing text', '~~~~'),
+                ('   ```markdown', '  ``\n    ```', '   ```  \t')]:
+            with self.subTest(opening=opening):
+                retained = ('# State\n## Corrections\n' + opening + '\n' + nonclosers +
+                            '\n## Active Task\nEXAMPLE TASK\n## Conversation Context\n'
+                            'EXAMPLE CONTEXT\n' + closing + '\nCURATED TAIL\n')
+                path.write_text(retained + '## Active Task\nOLD TASK\n'
+                                '## Conversation Context\nOLD CONTEXT\n')
+                self.assertTrue(self.update(transcript))
+                updated = path.read_text()
+                self.assertTrue(updated.startswith(retained), updated)
+                self.assertIn('New task', updated)
+                self.assertIn('New assistant context', updated)
+                self.assertNotIn('OLD TASK', updated)
+                self.assertNotIn('OLD CONTEXT', updated)
+
+    def test_fenced_heading_inside_target_does_not_end_section(self):
+        path = self.root / 'WORKING_STATE.md'
+        retained = '## Corrections\nCURATED CORRECTION\n'
+        path.write_text('# State\n## Active Task\nOLD TASK\n~~~\n'
+                        '## Corrections\nOLD EXAMPLE\n~~~\nOLD TAIL\n' + retained)
+        self.assertTrue(self.update(self.transcript([{'role': 'user', 'content': 'New task'}])))
+        updated = path.read_text()
+        self.assertTrue(updated.endswith(retained), updated)
+        self.assertNotIn('OLD', updated)
+        self.assertIn('New task', updated)
+
+    def test_unclosed_fence_preserves_exact_predecessor(self):
+        path = self.root / 'WORKING_STATE.md'
+        transcript = self.transcript([{'role': 'user', 'content': 'New task'}])
+        for fence in ['```markdown', '~~~~']:
+            with self.subTest(fence=fence):
+                original = '# State\n## Active Task\nKEEP TASK\n## Corrections\n' + fence + '\n## Active Task\nKEEP EXAMPLE\n'
+                path.write_text(original)
+                self.assertFalse(self.update(transcript))
+                self.hook('session-end.py', {'transcript_path': transcript})
+                self.assertEqual(path.read_text(), original)
+                self.assertEqual(list(self.root.glob('.working-state-*')), [])
+
+    def test_append_preserves_curated_bytes_and_trailing_whitespace(self):
+        path = self.root / 'WORKING_STATE.md'
+        original = b'# State\r\n## Corrections\r\n~~~\r\n## Active Task\r\n~~~\r\nKEEP  \r\n \t'
+        path.write_bytes(original)
+        self.assertTrue(self.update(self.transcript([{'role': 'user', 'content': 'New task'}])))
+        self.assertTrue(path.read_bytes().startswith(original))
 
     def test_partial_context_does_not_erase_other_section(self):
         path = self.root / 'WORKING_STATE.md'
