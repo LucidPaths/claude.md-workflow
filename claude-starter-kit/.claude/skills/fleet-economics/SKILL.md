@@ -15,8 +15,8 @@ the one level where it proves something.
 
 1. **Cost per finished slice, not per request.** A cheap model that needs three loop-backs costs more than a stronger
    one that needs none. Route by risk, then look at the rounds each slice actually took.
-2. **Judgment is never economised.** Critics, the advisor, the planner and the orchestrator run on the strongest models
-   available. The savings come from builders on fully specified work and from not re-running proof that already ran.
+2. **Size judgment to consequence.** Use a capable independent critic for consequential or unfamiliar changes, not
+   automatically for mechanical edits. Provider tiers are routing heuristics; compare accepted outcomes and total cost.
 3. **The cheapest level that can prove the gap; everything wider once.** A check runs at a level because it proves
    something there. A wider run repeated per edit proves nothing new.
 4. **Facts at run time.** Which models exist, what they cost and how they rank change faster than any skill. Discover
@@ -48,7 +48,7 @@ Before routing, list the models this harness can actually dispatch: the model op
 the provider's model list, the user's configuration. Place each in a tier by the provider's own positioning (flagship,
 balanced, fast) and by any current benchmark or price the user or provider documentation gives; when two are close,
 take the stronger one for judgment roles. With only one or two models, collapse the tiers: the classes still decide
-critic rounds and test levels, and the strongest available model still does all judging.
+critic rounds and test levels, and the review consequence still determines whether independent judgment is needed.
 
 ### 2.1 Who does what
 
@@ -60,13 +60,13 @@ critic rounds and test levels, and the strongest available model still does all 
 | Builder, mechanical | fast | highest | only with a self-contained brief and the guarding test named; at the highest effort the fast tier is still cheap, and it saves loop-backs |
 | Builder, standard | balanced | default | |
 | Builder, complex | flagship | default | |
-| Critic, mechanical and standard slices | flagship | default | never below flagship: critique is judgment |
+| Critic, mechanical and standard slices | capable for the risk, if needed | default | skip redundant review on fully specified low-risk edits |
 | Critic, complex slices and the plan | strongest, blind | default | reads requirements, the artifact and the code; never the orchestrator's notes |
 | Reading workers (inventories) | fast for enumerations and verbatim quotes; balanced for judgment-heavy reading | | the manager spot-checks every load-bearing claim |
 
 - **Effort** follows the user's settings where they gave any; otherwise the model's default, and highest for mechanical
   builders as above.
-- **Critic rounds:** mechanical one round, diff and brief only; standard one round with probes; complex up to two. A
+- **Critic rounds:** mechanical only when requested or decision-changing; standard one round when warranted; complex up to two. A
   further round only on a confirmed finding.
 - **Escalate, do not repeat:** two failed rounds at one tier → re-dispatch the slice one tier up with the reports,
   instead of a third round. Rotate a long-lived manager after about three rounds: its context slows every turn and loses
@@ -100,23 +100,24 @@ the host app; M = opt-in live tests with a real key.
 
 | Change | While working (builder) | Once per slice candidate | At the release candidate |
 |---|---|---|---|
-| Wording, catalogue string, docs | U (string or snapshot) + S | F once | nothing: never B or M for wording |
-| Validation or verification rule | U per accepted form, each with a negative pin (the same form, not given, stays refused) | F once | M only if a prompt changed with it |
-| Prompt (new prompt version) | U (assembly and version) + C with a stand-in model | F once | M: one small recorded sample |
-| Adapter, external interface, detecting what a dependency serves | C with a recorded stand-in of the dependency | F once | live checks once, against the version that will run |
-| Conversation or session flow, reply contract, anything a UI renders | C + N (multi-turn through the real entry point) | F once | B once after deploy, plus one manual check |
+| Wording, catalogue string, docs | inspect rendered content/links; S if relevant | no code suite for prose alone | B only if layout/accessibility changed; no M for prose alone |
+| Validation or verification rule | U per accepted form, each with a negative pin (the same form, not given, stays refused) | affected checks; F if broad impact or required | M only if a prompt changed with it |
+| Prompt (new prompt version) | U (assembly and version) + C with a stand-in model | affected checks; F if broad impact or required | M: one small recorded sample |
+| Adapter, external interface, detecting what a dependency serves | C with a recorded stand-in of the dependency | affected checks; F if broad impact or required | live checks once, against the version that will run |
+| Conversation or session flow, reply contract, anything a UI renders | C + N (multi-turn through the real entry point) | affected checks; F if broad impact or required | B once after deploy, plus one manual check |
 | Wiring, architecture rules, cross-module refactor | C + an architecture test | F once (wide blast radius) | nothing extra |
-| Persistence, schema version | C + compatibility (an old record still reads) | F once | nothing extra |
-| Security, scope, permissions | C with the refused paths as negative cases | F once | B if the UI exposes it |
+| Persistence, schema version | C + compatibility (an old record still reads) | affected checks; F if broad impact or required | nothing extra |
+| Security, scope, permissions | C with the refused paths as negative cases | affected checks; F if broad impact or required | B if the UI exposes it |
 
 ### 3.3 Who runs what
 
-- **Builder:** the narrow levels while working; F once on its clean committed head, with a log whose first line names
-  that head; negative controls only on the test files that guard the fix. In fleet mode the slice manager runs this one
-  F on the builder's head instead, and the builder does not.
+- **Builder:** focused and affected checks on its candidate, with the commit and relevant dirty state named. Run F
+  only for broad impact or a repository gate; in fleet mode assign that run to one owner. Negative controls belong
+  on the tests guarding material failures, in isolated fixtures—not production.
 - **Orchestrator, per slice:** the scripted gate only — the gap's programmatic proof, its negative control, commit
-  identity, line endings, nothing pushed — plus the one F log for the exact head. Not F again.
-- **Integration line:** F once after the last slice; CI at publication; B and M at the release candidate, only for the
+  identity, line endings, nothing pushed — plus relevant check logs for the exact head. Do not repeat unchanged evidence.
+- **Integration line:** affected integration checks, F for interacting slices or a release gate; CI at publication;
+  B and M at the release candidate, only for the
   change types in 3.2 that call for them.
 - **A skipped level is a decision, not an omission:** the plan names it ("B not run: wording only"), so the judge and the
   user can see it.
@@ -142,7 +143,7 @@ the host app; M = opt-in live tests with a real key.
 | A manager ran ten review rounds and its context grew until every turn was slow and lossy | §2.1 escalation and rotation |
 | A benchmark sweep emptied the shared budget of the user's running sessions | principle 5 |
 | Browser end-to-end planned for a reworded string | §3.2, first row |
-| Critics placed on a mid tier "to save tokens", missing what a stronger model would have refuted | §2.1: critics never below flagship |
+| Review cost cut without measuring missed defects or retry cost | §2.1: route by consequence and observed outcomes |
 
 ---
 

@@ -16,9 +16,9 @@ Every error must say what happened, why, and what the user can do about it. `"So
 
 If you replace a function, remove the old one. No commented-out code, no unused imports, no `_`-prefixed variables that nothing references. If you add a function, something must call it.
 
-### 4. Fix All Instances
+### 4. Search the Causal Pattern
 
-When you find a bug, grep for the same pattern across the entire codebase. Fix every instance, or fix none. One fix creates a false sense of safety. This applies to security lists, validation, naming — everything.
+When you find a bug, search the codebase for the same mechanism. Fix the authorized causal population and name any related defects left out, with reasons. Do not withhold a safe bounded repair because another instance needs separate authority or design. Never claim pattern-wide closure from a single-instance check.
 
 ### 5. Single Source of Truth for Cross-File Contracts
 

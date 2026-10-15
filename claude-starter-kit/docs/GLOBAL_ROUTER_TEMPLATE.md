@@ -13,7 +13,7 @@ On first response each session:
 1. Print status block: current branch, uncommitted file count, any blockers
 2. Read `WORKING_STATE.md` for session continuity context
 3. Load applicable role file from `docs/` if role-based workflow is used
-4. Read coding standards and traps from CLAUDE.md (this file)
+4. Read coding standards and traps from `.claude/rules/` (automatically loaded by Claude Code)
 5. Proceed with the task
 
 ---

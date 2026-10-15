@@ -5,16 +5,16 @@
 #
 # Loaded automatically by Claude Code. Apply to every project.
 
-## Core Checks (do ALL, in order)
+## Core Checks (apply to the changed behavior)
 
 1. **Test the production path.** Tests must exercise the actual code flow, not a synthetic setup.
 2. **Trace the full data flow.** If A triggers B triggers C, verify A→C end-to-end.
-3. **Run the full test suite.** Test count must not decrease vs. previous runs.
+3. **Select checks by risk.** Run focused regressions and affected boundary checks; run the full suite for broad impact or a repository release requirement. Preserve relevant evidence for unchanged behavior. Removing obsolete tests can be correct; test-count growth is not a quality invariant.
 4. **Grep for the pattern.** Every new pattern gets a codebase-wide search (Coding Standard #4).
 5. **Check the Principle Lattice.** Score your changes against all 5 principles in `docs/PRINCIPLE_LATTICE.md`. This is not decorative — enforce it actively on every change, or the principles become wallpaper. Ask yourself each one explicitly: Modular? Simple? Errors visible? Pattern fixed everywhere? Secrets safe?
 6. **No dead code.** If you added a function, something must call it (Coding Standard #3).
 7. **Check for regressions.** `git diff` and verify you didn't break existing contracts.
-8. **Stay in scope.** No unasked-for refactoring, no bonus features (Trap #4).
+8. **Stay in scope.** No unasked-for refactoring, no bonus features (Trap #1).
 
 ## Verification Language Rule
 
@@ -23,7 +23,7 @@
 ```
 BEFORE claiming any status:
 1. IDENTIFY — What command proves this claim?
-2. RUN — Execute the command (fresh, complete, in this response)
+2. RUN — Execute against the candidate being claimed; rerun evidence invalidated by edits
 3. READ — Full output, check exit code, count failures
 4. REPORT — State claim WITH the evidence: "Ran X → Y → [claim]"
 
@@ -37,22 +37,17 @@ Skip any step = the claim is unverified.
 - "I'm confident this works" (confidence ≠ evidence)
 - "I believe this fixes it"
 
-## Verification Hierarchy
+## Evidence relevance
 
-When checking if something works, these are in order of trustworthiness:
+Trust evidence according to the claim it can falsify, the target exercised, and its failure
+controls—not whether it is automated. A passing mock cannot establish installed-host behavior;
+a source trace supports an inference, not an execution claim. Exercise the real entry point
+when runtime compatibility is part of the deliverable. Report what remains untested.
 
-```
-1. Automated test passes (highest confidence)
-2. Manual trace through the actual code path
-3. Running it and observing the output
-4. Reading the code and reasoning about it
-5. "It looks correct to me" (lowest — almost worthless)
-```
-
-Never stop at level 5. At minimum, reach level 2.
-
-Relocated here from the retired `structured-reasoning` skill. It ranks *evidence*;
-the Verification Language Rule above governs *claims*. Use them together.
+Use independent review when consequence or unfamiliar complexity makes fresh judgment useful,
+or when the user/repository requires it. Review the exact candidate, stop concurrent writers,
+and re-review affected changes after any material edit. A trivial wording edit does not require
+an adversarial-review ceremony.
 
 ## Conditional Checks
 

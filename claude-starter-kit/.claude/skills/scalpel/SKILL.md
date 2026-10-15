@@ -32,8 +32,8 @@ Understand before designing. Read the LIVE system, not your memory of it:
 - **Standing laws**: postmortems, forbidden operations, conventions of the repo/host you
   are about to touch. A fix that violates a paid-for law is a regression.
 
-Recon spend is always recovered - it is what makes the small fix safe. Artifact spend is
-not. If a big design gets killed later, the recon it triggered was still the value.
+Bound recon to questions that can change the fix. Investigation can make a small fix safe,
+but neither recon nor artifact creation has guaranteed return.
 
 ## Phase 2 - The cut
 
@@ -93,5 +93,5 @@ PROOF       what you ran against the edited code, and its output
 NOT BUILT   what you deliberately did not build, and why
 ```
 
-NOT BUILT is never empty. If nothing was considered and rejected, Phase 1 did not
-happen - go back and do it rather than writing "n/a".
+NOT BUILT records consequential rejected additions. "None material" is valid for a small
+change; do not invent alternatives or extra recon to fill the form.

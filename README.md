@@ -7,7 +7,7 @@ Distilled from battle-tested patterns in the [HIVE](https://github.com/LucidPath
 **Two ways to use this repo, and both are first-class:**
 
 1. **Install it.** Drop `claude-starter-kit/` into your repo root and it works - hooks, rules, skills, templates.
-2. **Cannibalise it.** Point your agent at this repo and take the parts you want. Most of the value is in the *ideas*, and they transfer to any agent framework. Nothing here is load-bearing on the rest.
+2. **Cannibalise it.** Point your agent at this repo and take the parts you want. Most of the value is in the *ideas*, and they transfer to any agent framework. Advanced skills reference siblings and require adaptation.
 
 ---
 
@@ -26,7 +26,7 @@ any model, with or without the rest of the kit.
 
 | Skill | Use it when |
 |-------|-------------|
-| `/adversarial-review` | Before merging a diff. Two passes that overclaim in *opposite* directions, then adjudication. The intersection of "the bug hunter couldn't miss it" and "the disprover couldn't kill it" is remarkably accurate. |
+| `/adversarial-review` | Before merging a diff. Two passes that overclaim in *opposite* directions, then adjudication. Surviving disproof is unresolved until supported by evidence; no accuracy benchmark is claimed. |
 | `/shippable` | Before submitting, demoing or handing over. There is the work you did and the work that *arrives* — the gap is invisible to exactly one person: you. |
 
 **Then these four, as the situation calls for them.**
@@ -43,10 +43,10 @@ want that.
 
 | Skill | Use it when |
 |-------|-------------|
-| `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree. |
+| `/paranoia` | End of a long multi-artifact session, or before a handoff. Enumerate touched artifacts and defect classes; report tested coverage without claiming exhaustive correctness. |
 | `/blueprint` | Before a build that spans several steps, owners or contracts. Facts before design, design before code, refutation before approval: a fact inventory, locked design principles, a gap ledger whose every proof has a negative control, and a blind critic who never sees the orchestrator's reasoning. A plan reviewed only by its author is a wish list. |
 | `/goal-loop` | Closing a set of gaps end to end with subagents. Every gap declares its terminating proof *before* work starts; "the agent said so" never counts. |
-| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, never puts a critic below the flagship tier, and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
+| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, uses independent critics when the risk warrants them, and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
 
 ### Why folder format matters
 
@@ -69,9 +69,9 @@ including this one.
 
 **Instruction adherence decays, and more prose makes it worse.**
 
-Two arguments get conflated here and only one of them still matters. The **capacity** argument — long
-instructions eat your context budget — is largely dead. Against a million-token window a 16KB
-instruction set is a rounding error. **Do not trim your rules to save tokens.**
+Capacity, latency, cost and adherence are different constraints. A large context window does not
+make extra instructions free. Keep decision-relevant rules, remove duplication and contradiction,
+and measure cost rather than assuming a universal token-saving or adherence effect.
 
 The argument that survives is **structural**, which is why it is worth building on: it does not
 depend on how well any particular model follows instructions, so it does not expire when the models
@@ -93,9 +93,9 @@ as strongly**, and another paragraph telling the model to try harder buys nothin
 What works is making non-compliance **visible in the output**. Not "verify your claims," but
 *"end with a table of every claim and the source you read for it."* An instruction the model can
 satisfy by asserting it complied is not enforcement. An instruction that requires a filled-in
-artifact is.
+artifact makes omissions inspectable; its contents still require verification.
 
-Every skill here ends with a required closing block for exactly this reason - `/proof` must print
+Several skills here end with a required closing block for this reason - `/proof` must print
 its invariant, population, command, fail-proof and what it merely trusted; `/scalpel` must print
 what it deliberately did not build. A skipped block is obvious. A skipped intention is not.
 
@@ -110,12 +110,13 @@ bash guards/install-guards.sh main dev   # or name your own
 ```
 
 That installs a **pre-push** hook refusing pushes to protected branches and a **pre-commit** hook
-refusing commits that touch paths listed in `.claude/protected-paths.txt`. The overrides are
-environment variables a human types — `ALLOW_PROTECTED_PUSH=1`, `ALLOW_PROTECTED_PATHS=1` — not a
-phrase a model can emit mid-session, which is the whole point. Re-running is safe, and a pre-existing
-hook the script did not install is reported and left alone rather than clobbered.
+refusing commits that touch paths listed in `.claude/protected-paths.txt`. Explicit overrides are
+`ALLOW_PROTECTED_PUSH=1` and `ALLOW_PROTECTED_PATHS=1`. Any actor with shell access can set them,
+use `--no-verify`, or edit the hooks; these prevent accidents, not intentional circumvention.
+Re-running preserves foreign hooks rather than clobbering them.
 
-A rule in `rules/` is advice. A hook in `.git/hooks` is a wall.
+A rule is advice; a local hook is an accident guard. Use protected remote branches and permissions
+outside the actor's control when actual enforcement is required.
 
 ## What This Is
 
@@ -138,10 +139,10 @@ claude-starter-kit/
 │   │   └── quality-gate.md            # Pre-submit verification checklist
 │   ├── hooks/
 │   │   ├── session-start.py           # Auto-injects git state at session start
-│   │   ├── maintenance-check.py       # Blocks session end if docs not updated
+│   │   ├── maintenance-check.py       # One-shot reminder to check docs/state
 │   │   ├── pre-compact.py             # Snapshots state before context compaction
 │   │   ├── session-end.py             # Auto-persists working state on exit
-│   │   ├── precommit-doc-check.py     # Blocks commits missing doc updates
+│   │   ├── precommit-doc-check.py     # Code-only commit reminder with acknowledgement
 │   │   └── _state_utils.py            # Shared utilities for state hooks
 │   └── skills/                        # folder format - a flat .md never registers
 │       ├── pick-skills/SKILL.md
@@ -197,7 +198,7 @@ The adaptive design means the kit grows with your project instead of being stati
 
 ### 3. Automation (the hooks)
 
-Six lifecycle hooks registered in `.claude/settings.json`:
+Five lifecycle events registered in `.claude/settings.json`, plus one shared helper:
 
 **Session Start** (`session-start.py`):
 - Injects current branch, last 5 commits, uncommitted changes
@@ -206,9 +207,9 @@ Six lifecycle hooks registered in `.claude/settings.json`:
 - Claude starts every session oriented, not asking "what are we working on?"
 
 **Session Stop** (`maintenance-check.py`):
-- Detects if code files were modified during the session
-- If yes, **blocks session end** until documentation is confirmed up-to-date
-- Prevents documentation rot — the #1 cause of stale project context
+- Inspects uncommitted files, which may predate the session
+- Gives a one-shot maintenance reminder after a nontrivial transcript
+- Honors `stop_hook_active` and a standalone `No maintenance needed` line in the current assistant response; does not verify doc correctness
 
 **Pre-Compaction** (`pre-compact.py`):
 - Fires before Claude Code compresses context in long sessions
@@ -223,8 +224,8 @@ Six lifecycle hooks registered in `.claude/settings.json`:
 
 **Pre-Commit Doc Check** (`precommit-doc-check.py`):
 - Fires before `git commit` via PreToolUse hook
-- Blocks commits where code files are staged but no documentation is
-- Catches doc rot at commit time, not just session end
+- Denies recognized code-only commit commands with an actionable documentation reminder
+- Accepts an explicit `Docs-Unnecessary: <specific reason>` commit-message paragraph; presence of docs is a heuristic, not proof of relevance
 
 **Shared Utilities** (`_state_utils.py`):
 - Common functions for working state auto-maintenance
@@ -252,7 +253,7 @@ First session:
 Every session:
   → Orientation at start (branch, commits, changes, next steps)
   → Standards enforced during work (8 coding standards, 8 trap interrupts)
-  → Documentation check at end (blocks if code changed but docs didn't)
+  → One-shot documentation/state reminder at end
 
 Per task:
   → Copy TASK_CONTRACT_TEMPLATE.md, define acceptance criteria
@@ -267,15 +268,15 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 |-------------|-----------------|
 | Claude drifts from project context | `[ADAPT]` sections in CLAUDE.md that grow with the project |
 | Session starts cold, wastes turns exploring | session-start.py auto-injects git state |
-| Documentation rots, future sessions hallucinate | maintenance-check.py blocks session end until docs updated |
-| Scope creep ("while I'm here, I'll also...") | Trap #4 + `/scalpel` sizing the cut to the evidence |
+| Documentation rots, future sessions hallucinate | maintenance-check.py reminds once; relevance still needs review |
+| Scope creep ("while I'm here, I'll also...") | Trap #1 + `/scalpel` sizing the cut to the evidence |
 | Sycophantic code review ("this looks correct") | `/adversarial-review` exploits the bias against itself |
 | Context bloat from mixing research and coding | `docs/research-then-implement.md` separates the phases |
 | A passing check that could never have failed | `/proof` - fail-proof the checker before trusting it |
 | Confident output where the honest answer is "I don't know" | `/unverified` - the five seams where uncertainty dies |
 | Work that only runs on the author's machine | `/shippable` - the cold-clone test |
 | A long session accumulating silent drift | `/paranoia` - one defect class per pass, to convergence |
-| Single-instance fix creates false safety | Coding Standard #4: fix ALL instances or none |
+| Single-instance fix creates false safety | Coding Standard #4: search the mechanism; fix in scope and carry the rest |
 | Cross-file values drift silently | Cross-file contracts table + Coding Standard #5 |
 | Vague acceptance criteria, gold-plating | Task contract template with explicit done conditions |
 | Two-layer validation updated on one side only | Coding Standard #8 + Trap #8 |
@@ -295,7 +296,7 @@ Mostly yes. The principles, coding standards, and traps are universal to any LLM
 - The Python hooks are plain scripts — any AI tool with lifecycle hooks could call them
 - The skills are markdown prompts — they work as system prompts for any model
 - The `[ADAPT]` pattern is transferable to any agent framework
-- Only `.claude/settings.json` is Claude Code-specific (hook registration format)
+- Hook stdin/stdout contracts, transcript shapes and registration are Claude Code-specific; other hosts need adapters and runtime qualification
 
 ## Parallel Multi-Session Architecture
 
@@ -420,8 +421,8 @@ what comes before and around `/goal-loop`: choosing the method, planning the bui
   sees the orchestrator's reasoning. Its closing block puts the critic's last verdict into what the user
   approves
 - **`/fleet-economics`**, the single source for model routing, critic tiers, the verification ladder
-  and token rules. Builders are routed by risk, judgment is never economised, and each check runs at
-  the one level where it proves something — the full suite once per candidate, not once per layer
+  and token rules. Builders are routed by risk, review is sized to consequence, and each check runs at
+  the one level where it proves something — risk-directed checks bound to the candidate, not repeated per layer
 
 **Changed:**
 - **`/goal-loop`**: a negative-control column in the gap ledger, decided before dispatch; an identity

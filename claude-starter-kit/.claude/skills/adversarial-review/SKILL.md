@@ -5,13 +5,16 @@ description: Three-pass adversarial verification that finds real bugs in a chang
 
 # Adversarial Review — Three-Pass Verification
 
-Exploit sycophancy bias against itself to find *real* bugs. Models find what they think you want, so run two opposing passes that each overclaim in opposite directions, then adjudicate. The intersection of "Bug Hunter couldn't miss it" and "Disprover couldn't kill it" is remarkably accurate.
+Exploit sycophancy bias against itself to find *real* bugs. Models find what they think you want, so run two opposing passes that each overclaim in opposite directions, then adjudicate. Opposing passes can expose missed assumptions, but no accuracy benchmark is provided here; surviving disproof is not confirmation.
+
+Use this protocol for consequential or unfamiliar changes, or when explicitly requested.
+For ordinary low-risk edits, a diff read and focused verification may suffice.
 
 ## Before you start — ground the review
 
 Do this first, every time. Skipping it is how reviews miss the obvious.
 
-1. **Read the actual code.** Pull the real `git diff`, open the changed files, read the function signatures and callers. Never review from memory, from the PR description, or from how similar code "usually" looks.
+1. **Pin the candidate and stop writers.** Record the base/head commit and any dirty changes; review that exact diff. Material edits invalidate affected findings and tests. **Read the actual code.** Pull the real `git diff`, open the changed files, read the function signatures and callers. Never review from memory, from the PR description, or from how similar code "usually" looks.
 2. **Define "correct" for *this* change.** State the concrete success conditions and the invariants it must not break — not generic ones. (e.g. "90/10 split stays exact," "no state transition skips Verified," "no revert path leaves funds locked.")
 3. **List the high-risk surfaces it touches:** money / fund release, access control, state machines, external calls & reentrancy, integer math / overflow, error and revert paths, concurrency, auth flows, anything recently refactored.
 4. **Hunt the structural defects tests rarely catch:** a box boundary crossed (core importing an adapter, an inbound adapter reaching the composition root), a second place that wires the same dependency, a second source of truth for one list or definition, a contract changed without its version step; and on every error path: a failure returned as an empty result ("none" where the read failed), a silent fallback or default (`/unverified`), an error that does not say what happened, why, and what to do.

@@ -1,141 +1,178 @@
 #!/usr/bin/env python3
+"""Best-effort documentation reminder for ordinary Bash git commits.
+
+This is not a shell interpreter or a security boundary. See README for limits.
+Python stdlib only; never executes the supplied shell command.
 """
-PreCommit Documentation Check — Fires before git commit via PreToolUse
-
-When Claude is about to run `git commit`, checks if code files are staged
-but no documentation files are. If so, blocks and reminds to update docs.
-
-Project-agnostic — works with any repo and tech stack. Python stdlib only.
-"""
-
 import json
-import sys
 import os
+from pathlib import PurePath
+import re
+import shlex
+import shutil
 import subprocess
+import sys
+import tempfile
 
-
-# Code file extensions that warrant a doc check.
 CODE_EXTENSIONS = {
-    '.py', '.ts', '.tsx', '.js', '.jsx',
-    '.rs', '.go', '.java', '.rb', '.php',
-    '.c', '.cpp', '.h', '.swift', '.kt',
-    '.css', '.html', '.toml', '.yaml', '.yml',
+    '.py', '.ts', '.tsx', '.js', '.jsx', '.rs', '.go', '.java', '.rb', '.php',
+    '.c', '.cpp', '.h', '.swift', '.kt', '.css', '.html', '.toml', '.yaml', '.yml',
 }
-
-# Documentation file patterns — if ANY of these are staged, docs are covered.
-DOC_PATTERNS = {
-    'README', 'CLAUDE', 'ROADMAP', 'TODO', 'CHANGELOG',
-    'WORKING_STATE', 'CONTRIBUTING', 'ARCHITECTURE',
-}
-DOC_EXTENSIONS = {'.md', '.rst', '.txt'}
+DOC_NAMES = {'README', 'CLAUDE', 'ROADMAP', 'TODO', 'CHANGELOG',
+             'WORKING_STATE', 'CONTRIBUTING', 'ARCHITECTURE'}
 
 
-def is_git_commit(command):
-    """Check if a bash command is a git commit."""
-    cmd = command.strip()
-    # Match: git commit, git commit -m, git commit -am, etc.
-    # Don't match: git commit --amend (different intent, user already decided)
-    return cmd.startswith('git commit') and '--amend' not in cmd
+def parse_commit(command, cwd):
+    """Recognize a literal git [-C dir] commit, optionally after cd dir &&.
 
-
-def get_staged_files():
-    """Get list of staged files from git."""
+    Unsupported shell expressions, Git options, and pathspec commits are skipped
+    rather than inspecting the wrong repository/index. No eval or shell execution.
+    """
     try:
-        result = subprocess.run(
-            ['git', 'diff', '--cached', '--name-only'],
-            capture_output=True, text=True, timeout=5
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip().split('\n')
-    except Exception:
-        pass
-    return []
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=';&|<>()')
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError:
+        return None
+    if tokens[:1] == ['cd'] and len(tokens) >= 4 and tokens[2] == '&&':
+        cwd = os.path.abspath(os.path.join(cwd, tokens[1]))
+        tokens = tokens[3:]
+    if not tokens or tokens.pop(0) != 'git':
+        return None
+    while len(tokens) >= 2 and tokens[0] == '-C':
+        cwd = os.path.abspath(os.path.join(cwd, tokens[1]))
+        tokens = tokens[2:]
+    if not tokens or tokens.pop(0) != 'commit':
+        return None
+    messages = []
+    all_tracked = False
+    while tokens:
+        option = tokens.pop(0)
+        if option in ('--amend', '--no-edit', '--no-verify', '-q', '--quiet',
+                      '-s', '--signoff', '--allow-empty', '--allow-empty-message'):
+            continue
+        if option == '--all':
+            all_tracked = True
+        elif option in ('-m', '--message'):
+            if not tokens:
+                return None
+            messages.append(tokens.pop(0))
+        elif option.startswith('--message='):
+            messages.append(option.partition('=')[2])
+        elif option.startswith('-') and not option.startswith('--'):
+            # Common short clusters: -a, -am text, -mtext, -asm text.
+            flags = option[1:]
+            while flags:
+                flag, flags = flags[0], flags[1:]
+                if flag == 'a':
+                    all_tracked = True
+                elif flag in 'qs':
+                    continue
+                elif flag == 'm':
+                    if not flags and not tokens:
+                        return None
+                    messages.append(flags or tokens.pop(0))
+                    break
+                else:
+                    return None
+        else:
+            return None
+    # Literal paths only: shell expansion would change the actual target.
+    if any(char in cwd for char in '$`~'):
+        return None
+    return cwd, all_tracked, messages
 
 
-def is_code_file(filepath):
-    """Check if a file is a code file by extension."""
-    return os.path.splitext(filepath)[1].lower() in CODE_EXTENSIONS
+def get_candidate_files(cwd, all_tracked):
+    """Net candidate versus HEAD, without writing the real index or worktree."""
+    env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
+
+    def git(*args):
+        return subprocess.run(['git', *args], cwd=cwd, env=env, capture_output=True,
+                              text=True, timeout=5, check=True).stdout
+
+    try:
+        with tempfile.TemporaryDirectory(prefix='doc-check-index-') as temporary:
+            if all_tracked:
+                index = git('rev-parse', '--git-path', 'index').strip()
+                index = os.path.join(cwd, index)
+                candidate = os.path.join(temporary, 'index')
+                if os.path.exists(index):
+                    # Preserve index timestamps so Git still detects racy-clean files.
+                    shutil.copy2(index, candidate)
+                env['GIT_INDEX_FILE'] = candidate
+                # Let Git apply -a's update semantics to a disposable index. A
+                # union of paths (or a stat-only diff) misses canceling edits.
+                git('add', '--update')
+            # --cached compares against HEAD, or the empty tree on unborn branches.
+            output = git('diff', '--cached', '--name-only', '-z', '--')
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return sorted(filter(None, output.split('\0')))
 
 
-def is_doc_file(filepath):
-    """Check if a file is a documentation file."""
-    basename = os.path.basename(filepath)
-    name, ext = os.path.splitext(basename)
-    # Check extension
-    if ext.lower() in DOC_EXTENSIONS:
-        return True
-    # Check known doc filenames (with any extension)
-    return name.upper() in DOC_PATTERNS
+def is_code_file(path):
+    return os.path.splitext(path)[1].lower() in CODE_EXTENSIONS
 
 
-def is_test_only(code_files):
-    """Check if all code files are test files."""
-    test_indicators = ['test', 'spec', '__test__', '.test.', '.spec.', '_test.']
-    return all(
-        any(ind in f.lower() for ind in test_indicators)
-        for f in code_files
-    )
+def is_doc_file(path):
+    name, ext = os.path.splitext(os.path.basename(path))
+    return (ext.lower() in {'.md', '.rst'} or
+            (name.upper() in DOC_NAMES and ext.lower() in {'', '.txt'}))
+
+
+def is_test_only(paths):
+    def is_test(path):
+        parts = PurePath(path.lower()).parts
+        name = parts[-1]
+        stem = os.path.splitext(name)[0]
+        return (bool(set(parts[:-1]) & {'test', 'tests', 'spec', 'specs', '__tests__', '__test__'})
+                or name.startswith(('test_', 'spec_'))
+                or stem.endswith(('_test', '_spec', '.test', '.spec')))
+    return bool(paths) and all(is_test(path) for path in paths)
 
 
 def main():
     try:
         data = json.load(sys.stdin)
-    except Exception:
-        sys.exit(0)
-
-    # Only trigger on Bash tool with git commit commands
-    tool_name = data.get("tool_name", "")
-    if tool_name != "Bash":
-        sys.exit(0)
-
-    tool_input = data.get("tool_input", {})
-    command = tool_input.get("command", "")
-
-    if not is_git_commit(command):
-        sys.exit(0)
-
-    # Get staged files
-    staged = get_staged_files()
-    if not staged:
-        sys.exit(0)
-
-    code_files = [f for f in staged if is_code_file(f)]
-    doc_files = [f for f in staged if is_doc_file(f)]
-
-    # No code files staged → no doc check needed
-    if not code_files:
-        sys.exit(0)
-
-    # Test-only commits don't need doc updates
-    if is_test_only(code_files):
-        sys.exit(0)
-
-    # Code files staged AND doc files staged → good
-    if doc_files:
-        sys.exit(0)
-
-    # Code files staged but NO doc files → remind
-    file_list = "\n".join("  - " + f for f in code_files[:8])
-    if len(code_files) > 8:
-        file_list += f"\n  - ... and {len(code_files) - 8} more"
-
-    output = {
-        "decision": "block",
-        "reason": (
-            "DOC CHECK: Code files are staged but no documentation files.\n\n"
-            f"Staged code files:\n{file_list}\n\n"
-            "Before committing, check if any docs need updating:\n"
-            "  - README.md — if user-facing behavior changed\n"
-            "  - CLAUDE.md — if coding patterns or project instructions changed\n"
-            "  - ROADMAP.md — if feature status changed\n\n"
-            "If docs are already up to date, add a brief note in the commit message "
-            "explaining why no doc changes are needed, then re-run the commit."
-        )
-    }
-
-    print(json.dumps(output))
-    sys.exit(0)
+    except (ValueError, OSError):
+        return
+    if not isinstance(data, dict) or data.get('tool_name') != 'Bash':
+        return
+    tool_input = data.get('tool_input')
+    if not isinstance(tool_input, dict) or not isinstance(tool_input.get('command'), str):
+        return
+    cwd = data.get('cwd') or os.environ.get('CLAUDE_PROJECT_DIR') or os.getcwd()
+    parsed = parse_commit(tool_input['command'], cwd)
+    if parsed is None:
+        return
+    cwd, all_tracked, messages = parsed
+    # A scoped acknowledgement, not evidence that documentation is correct.
+    if any(re.search(r'(?im)^Docs-Unnecessary:[ \t]*\S[^\n]*', message)
+           for message in messages):
+        return
+    files = get_candidate_files(cwd, all_tracked)
+    if files is None:
+        print(json.dumps({'hookSpecificOutput': {
+            'hookEventName': 'PreToolUse',
+            'additionalContext': 'Doc check could not read the Git candidate. Check documentation manually.'}}))
+        return
+    code_files = [path for path in files if is_code_file(path)]
+    if not code_files or is_test_only(code_files) or any(is_doc_file(path) for path in files):
+        return
+    file_list = '\n'.join('  - ' + path for path in code_files[:8])
+    reason = (
+        'DOC CHECK: Candidate includes code but no recognized documentation.\n\n'
+        f'Code files (up to 8 shown):\n{file_list}\n\n'
+        'Check README.md for user-facing changes, CLAUDE.md for development instructions, '
+        'and ROADMAP.md for feature status. A staged doc is only a reminder heuristic, not proof of relevance.\n\n'
+        'If no doc update is needed, retry with a commit-message paragraph '
+        '"Docs-Unnecessary: <specific reason>". This acknowledgement does not bypass other permissions.'
+    )
+    print(json.dumps({'hookSpecificOutput': {
+        'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
+        'permissionDecisionReason': reason}}))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

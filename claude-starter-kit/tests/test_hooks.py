@@ -65,7 +65,7 @@ for event_name, event_hooks in settings.get("hooks", {}).items():
         for hook in group.get("hooks", []):
             cmd = hook.get("command", "")
             # Extract the Python script path from the command
-            # Format: python3 "$(git rev-parse --show-toplevel)/.claude/hooks/foo.py"
+            # Format: python3 "$CLAUDE_PROJECT_DIR/.claude/hooks/foo.py"
             if ".claude/hooks/" in cmd:
                 script_name = cmd.split(".claude/hooks/")[-1].rstrip('"')
                 script_path = os.path.join(HOOKS_DIR, script_name)
@@ -176,8 +176,7 @@ else:
     test("skills/ directory exists", False)
 
 # --- Test 8: executable guards ---
-# The kit argues that hard don'ts belong in git, not in prompts. That argument
-# is only honest if the script it ships actually parses and is closed by default.
+# Static guard smoke checks; executable behavior is in test_hook_behavior.py.
 print("")
 print("guards/")
 guard = os.path.join(STARTER_KIT_DIR, "guards", "install-guards.sh")
@@ -187,7 +186,7 @@ if os.path.isfile(guard):
         first, body = f.readline(), f.read()
     test("has a shebang", first.startswith("#!"))
     test("installs both hooks", "pre-push" in body and "pre-commit" in body)
-    test("provides human overrides", "ALLOW_PROTECTED_PUSH" in body and "ALLOW_PROTECTED_PATHS" in body)
+    test("provides explicit overrides", "ALLOW_PROTECTED_PUSH" in body and "ALLOW_PROTECTED_PATHS" in body)
     test("refuses to clobber foreign hooks", "installed-by:" in body)
     bash = shutil.which("bash")
     if bash:
@@ -201,7 +200,7 @@ test("protected-paths.txt ships", os.path.isfile(protected))
 if os.path.isfile(protected):
     with open(protected, encoding="utf-8") as f:
         active = [l.strip() for l in f if l.strip() and not l.strip().startswith("#")]
-    test("ships closed by default (no active entries)", not active, "active: %s" % active)
+    test("ships with path protection unconfigured (no active entries)", not active, "active: %s" % active)
 
 # --- Summary ---
 print(f"\n{'=' * 40}")

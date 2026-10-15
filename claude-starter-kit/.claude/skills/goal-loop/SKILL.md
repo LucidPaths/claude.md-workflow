@@ -75,7 +75,7 @@ Rules:
    prestige): classify every slice (mechanical, standard, complex) and staff and prove it by
    `/fleet-economics` (§1 classes, §2 roles and models, §3 the verification ladder). In
    short: the smallest model that finishes a fully specified slice, the flagship tier for
-   complex ones, critics only on the strongest models, the cheapest test level that proves
+   complex ones, independent critics when consequence warrants them, the cheapest test level that proves
    the gap. You stay on the session model as judge.
 4. **Token budget and shared usage:** `/fleet-economics` §0 and §4. If the user granted
    budget ("have tokens", "+Nk"), spend it in priority order on (a) stronger builders for
@@ -116,9 +116,9 @@ Rules:
      - **Local-only repos** (the user names them, for example `~/.claude`): commit locally,
        never add a remote.
    - **The agent opens its PR, after judgment.** Order: agent reports "done" → orchestrator
-     judges (diff, own gate run, negative control, critic) → loop-backs on the same agent's
-     open pipe → when accepted, the orchestrator sends the commit message and the agent
-     commits (as the repo's identity), pushes and opens the PR with the repo's template →
+     judges (diff, relevant gates, negative control, critic when warranted) → loop-backs on the same agent's
+     open pipe → when the exact committed candidate is accepted, the agent
+     pushes that head and opens the PR with the repo's template →
      the pipe stays open until the PR is green → close the agent. Agents never merge; the
      user merges.
    - Parallel only across provably disjoint file sets (a shared file such as a message
@@ -178,9 +178,9 @@ agent's green report is a claim, not evidence.
    scope creep.
 2. **Gates**: run the slice's proof yourself at the level its change type requires
    (`/fleet-economics` §3.2-3.3): the gap's programmatic truth, the static checks, the slice's
-   new checks, and the one full-suite log for the exact candidate head (the builder's; in
-   fleet mode the slice manager's), never a second run of the same head; your own full run
-   is on the final tree (Phase 5). Where
+   new checks, and relevant logs bound to the exact candidate head (the builder's; in
+   fleet mode the slice manager's). Run the full suite for broad impact or a repository
+   gate; do not repeat valid evidence for unchanged behavior. Where
    automated gates can't reach (client UX, visual behavior), verify directly — e.g. drive the
    real app with a scripted browser and assert the exact copy/DOM states; send the user
    screenshots as evidence — and only for the change types the ladder names.
@@ -197,7 +197,7 @@ agent's green report is a claim, not evidence.
    held duplicated literals and would have passed a coordinated one-sided edit; a
    cross-file byte comparison replaced them). A checker that reports zero findings must be
    shown to fire on a planted defect.
-3. **Adversarial critic**: spawn a separate agent whose ONLY job is refutation. It is always a
+3. **Adversarial critic, when consequence warrants it**: use a separate agent whose ONLY job is refutation. It is a
    **fresh agent, never a fork** of the orchestrator (a fork inherits your context and your
    assumptions, and then agrees with them); it receives only the spec, the diff and what it
    may execute:
@@ -238,7 +238,7 @@ agent's green report is a claim, not evidence.
 
 ## Phase 5 — Ship & truth table
 
-1. Final full gate run on the final tree (slices interact; per-slice green ≠ final green).
+1. Run affected integration gates on the final tree; include the full suite for interacting slices or a repository release requirement. Per-slice green is not integrated/runtime qualification.
 2. Push; open a PR following the repo's template exactly; watch CI (including any CI jobs
    the loop itself added — their first green run IS the programmatic truth for that gap).
 3. Merge only if the user authorized merging (in this session or durably); otherwise stop
@@ -275,10 +275,10 @@ has more than a few slices or must survive a context compaction.
    Revise until the blind critic clears; the user approves the plan.
 3. **Slice managers judge, the orchestrator checks.** One manager per slice spawns the
    implementer, reads the diff, runs the gates and every negative control itself, spawns a
-   FRESH blind reviewer per round, loops back at most 3 times, writes the full report to a
+   FRESH blind reviewer when the risk warrants it, loops back at most 3 times, writes the full report to a
    file and sends at most 150 words. The orchestrator's final check per slice is short and
    scripted: light gates and typecheck, the slice's own test files, identity, EOL, nothing on
-   a remote, the manager's full-suite log for the exact head, and ONE negative control of its
+   a remote, the manager's relevant check logs for the exact head, and ONE negative control of its
    own on the slice's key fix (item 10, `/fleet-economics` §3.3). Then "accepted at <sha>",
    ledger line, next slice.
 4. **Durability:** report file per slice, a ledger written by the orchestrator only with
@@ -300,12 +300,10 @@ has more than a few slices or must survive a context compaction.
    reporting; the orchestrator runs `/paranoia` before the handoff.
 9. **Local first:** no push, PR, tracker task or time record until the user has gone through
    the whole line; the orchestrator's few approved tracker moves are logged in the ledger.
-10. **Test economy:** `/fleet-economics` §3 (change type → cheapest proving level; the full
-    suite once per candidate, run by the slice manager on the builder's clean committed head
-    (the builder does not run it), once on the whole line by the orchestrator before any PR;
-    browser and live-model runs only at the release candidate, for the change types that need
-    them). The final assurance is unchanged: a full run exists for every candidate and for the
-    whole line.
+10. **Test economy:** `/fleet-economics` §3 selects focused, affected and runtime checks by risk.
+    Assign each required run to one owner and bind it to the exact candidate. Run the full suite
+    for broad/integration impact or a repository gate, not for every wording correction.
+    Runtime checks remain necessary for runtime claims; repository tests alone do not qualify them.
 11. **Rotate a slice manager after about three review rounds** (one slice ran ten rounds; its
     manager's context neared 800 k tokens and one worker overflowed): a long-lived manager
     gets slow on every turn and loses detail; hand the slice to a FRESH manager with a
@@ -324,9 +322,9 @@ has more than a few slices or must survive a context compaction.
   understands it → orchestrator scopes the roadmap → segments it into pedantically scoped
   single features → writes ONE locked PRD per feature → dispatches ONE implementer per
   feature in its own worktree → keeps every agent's pipe open → does nothing to a slice
-  until that agent reports done → distrusts "done" (judge, gates, negative control, critic)
-  → corrections go down the same pipe into the same session → loop until the critic is
-  satisfied against the spec both sides agreed on → agent opens its PR → close.
+  until that agent reports done → verify the candidate (relevant gates, negative control, critic when warranted)
+  → corrections go down the same pipe into the same session → loop until acceptance is
+  supported against the agreed spec → agent opens its PR → close.
 - One agent, one feature, one worktree, one PR. An agent never merges, never deploys and
   never writes a shared ledger.
 - No gap is "done" without its pre-declared programmatic proof and a negative control that

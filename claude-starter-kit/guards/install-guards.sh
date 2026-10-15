@@ -9,8 +9,8 @@
 #   bash guards/install-guards.sh                 # protect main + master
 #   bash guards/install-guards.sh main release    # custom protected branches
 #
-# Escape hatches are deliberate and explicit (a human decision, not a phrase
-# a model can emit mid-session):
+# Explicit escape hatches prevent accidental use, not an actor with shell access.
+# Anyone able to run commands can set these variables or bypass local hooks:
 #   ALLOW_PROTECTED_PUSH=1 git push ...
 #   ALLOW_PROTECTED_PATHS=1 git commit ...
 #
@@ -51,7 +51,7 @@ while read -r _local_ref _local_sha remote_ref _remote_sha; do
         if [[ \"\$branch\" == \"\$p\" ]]; then
             echo \"BLOCKED: push to protected branch '\$p'.\" >&2
             echo \"Push a feature branch and open a PR instead.\" >&2
-            echo \"Human override: ALLOW_PROTECTED_PUSH=1 git push ...\" >&2
+            echo \"Explicit override: ALLOW_PROTECTED_PUSH=1 git push ...\" >&2
             exit 1
         fi
     done
@@ -87,7 +87,7 @@ if [[ -n \"\$violations\" ]]; then
     echo \"BLOCKED: commit touches protected paths:\" >&2
     printf '%b' \"\$violations\" >&2
     echo \"These paths are listed in .claude/protected-paths.txt.\" >&2
-    echo \"Human override: ALLOW_PROTECTED_PATHS=1 git commit ...\" >&2
+    echo \"Explicit override: ALLOW_PROTECTED_PATHS=1 git commit ...\" >&2
     exit 1
 fi
 exit 0"
