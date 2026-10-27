@@ -1,6 +1,6 @@
 ---
 name: proof
-description: Verify a data operation without being fooled by your own checks — the discipline for migrations, dedups, reconciliations, mass-edits, backfills, and "is it actually done?" claims over real data. Chase mismatched numbers, verify the verifier, match by natural key, prove on a clone, confirm-before-delete. Use when the user runs /proof or is about to run or trust a destructive or large-scale data operation.
+description: Verify a data operation without being fooled by your own checks — the discipline for migrations, dedups, reconciliations, mass-edits, backfills, and "is it actually done?" claims over real data. Chase mismatched numbers, verify the verifier, match by natural key, prove on a clone, confirm-before-delete. Use when the user runs /proof or is about to run or trust a data operation that deletes or overwrites data, or any migration, dedup, reconciliation, mass-edit or backfill.
 ---
 
 # Proof — Verify a Data Operation Without Being Fooled by Your Own Checks
@@ -9,7 +9,9 @@ The thesis: **"the check passed" is not "the thing is true."** Most data-op disa
 
 ## The one reflex
 
-**When a number doesn't match what you expected, that is the most valuable thing on the screen.** Chase it — don't round it off, don't explain it away, don't move on. Every bug worth catching first showed up as a count that was slightly wrong: 130 vs 98, 39 edits vs 4, 112 rows vs the real ~4. The discrepancy *is* the finding.
+**When a number doesn't match what you expected, that is the most valuable thing on the screen.** Chase it — don't round it off, don't explain it away, don't move on. The discrepancy *is* the finding.
+
+Example: every bug worth catching first showed up as a count that was slightly wrong: 130 vs 98, 39 edits vs 4, 112 rows vs the real ~4.
 
 ## Verify the verifier — before you trust a passing check
 
@@ -38,7 +40,7 @@ Rehearse the operation on a throwaway clone that **matches the target's real con
 
 One invariant over the **full set** (never a sample) is provably **0 / N** — zero rows lost, zero dead links, zero mismatches you can't explain. Treat docs, prior session notes, and your own earlier claims as **stale until re-verified against live**. In the result, keep separate what you **measured against live data** versus what you're **trusting from a doc or estimate** — they are not the same confidence. "Looks done" is not done; show the invariant.
 
-## State the close in this form — otherwise you asserted it, you did not prove it
+## Closing block (required) — State the close in this form — otherwise you asserted it, you did not prove it
 
 ```
 INVARIANT    the one statement that must hold ("0 rows lost", "43/43 pins present")

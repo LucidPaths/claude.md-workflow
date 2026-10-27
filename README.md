@@ -62,6 +62,18 @@ not as a summary.
 The two-phase research pattern that used to be `/research-decide` is now a reference doc at
 `claude-starter-kit/docs/research-then-implement.md` — it is a way of working, not something you invoke.
 
+### No gut rules, and no skill that needs another
+
+Every decision rule in these skills is one of three kinds: **DETERMINISTIC** (an observable signal, a threshold and the
+reason), **DEFAULT** (a named value you can tune), or **ASK** (a question to you, with a fixed consequence for each
+answer, and a halt-and-report when nobody can answer). Wording that leaves the decision to the model's feel — "about
+three rounds", "if needed", "a large diff" — is not allowed in a rule.
+
+No skill depends on another to work. Where one borrows another's rule, it carries the smallest working version inline
+as its **standalone default** and names the companion as an optional upgrade, so you can take one skill or all eleven.
+The rules for writing a skill are in [`claude-starter-kit/docs/SKILL-STANDARD.md`](claude-starter-kit/docs/SKILL-STANDARD.md);
+`claude-starter-kit/tests/skill_lint.py` checks them, and runs against your own skills folder with `--skills-dir`.
+
 ## The Enforcement Problem
 
 This is the hardest-won lesson in the repo, and it applies to any prompt-based framework
@@ -157,6 +169,7 @@ claude-starter-kit/
 │       └── fleet-economics/SKILL.md
 ├── samples/                              # Filled-in examples from real projects
 └── docs/
+    ├── SKILL-STANDARD.md              # How a skill is written: three kinds of rule, standalone defaults
     ├── PRINCIPLE_LATTICE.md           # 5 axiomatic design principles
     ├── TASK_CONTRACT_TEMPLATE.md      # Per-task acceptance criteria template
     ├── research-then-implement.md      # Two-phase task pattern (reference)
@@ -404,6 +417,35 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-10-14 — No Gut Rules
+
+Every decision rule in the eleven skills now says what decides it. "About three rounds", "if needed" and "a large
+diff" left the call to the model's feel, and two runs feel differently.
+
+**Added:**
+- **`docs/SKILL-STANDARD.md`**: three kinds of decision rule and no fourth — DETERMINISTIC (an observable signal, a
+  threshold, a one-clause reason), DEFAULT (a named value you tune), ASK (a question to the user with a fixed
+  consequence per answer, and halt-and-report when nobody can answer); the terms banned in a rule; where explanation
+  may live; the structure of a skill; standalone defaults; agent-agnostic wording
+- **`tests/skill_lint.py`**, the standard as a check: frontmatter, closing block, banned terms in decision-rule lines,
+  and references to another skill without a standalone default or to a skill the kit does not ship. `--skills-dir`
+  lints any folder. `tests/test_skill_lint.py` plants one defect per check and shows each one fires
+
+**Changed:**
+- **All eleven skills** rewritten against the standard: each gut rule became DETERMINISTIC, a named DEFAULT or an
+  ASK, with its substance kept (two in `/blueprint` stay as written, because every rewrite found would have changed
+  what they require: which inventory claims the manager spot-checks, and when the planner consults the advisor);
+  every skill ends in a `## Closing block (required)`; every reference to another skill carries its standalone
+  default, so each skill works alone and nothing here is load-bearing on the rest.
+  `/paranoia` no longer points at a skill the kit does not ship
+- **`/fleet-economics`**: the manager rotation "after about three rounds" became an agent-lifetime rule — retire an
+  agent at 60 % context use (a DEFAULT), when it delivered and the next job is new, after 3 review rounds without
+  convergence, or when its reports repeat or drop detail; resume it only for a bounded loop-back on its own deliverable;
+  brief a fresh agent from files, never from the old transcript. The fast tier never classifies, judges or decides; a
+  script does the extraction wherever a regex or parser can
+- `tests/test_hooks.py`: a unittest case carries its result, so `python -m unittest discover -s claude-starter-kit/tests`
+  reports the hook checks instead of an import error; the script run is unchanged at 45/45
 
 ### 2026-10-14 — Planning, Economics and the Way In
 

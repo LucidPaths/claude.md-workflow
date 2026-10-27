@@ -1,6 +1,6 @@
 ---
 name: goal-loop
-description: Audit-primed autonomous goal loop — self-define a gap ledger from evidence, dispatch specialized implementer subagents with locked designs, judge every slice (yourself, or through slice managers in fleet mode: gates + diff review + negative control + blind adversarial critic), loop agents back on violations, and terminate only on programmatic truth. Use when the user asks to close a set of gaps/points/backlog items end-to-end, says "run the goal loop", or invokes /goal-loop. Not for a single small fix (just do it), not for planning without execution, not for reviewing one outward deliverable.
+description: Audit-primed autonomous goal loop — self-define a gap ledger from evidence, dispatch specialized implementer subagents with locked designs, judge every slice (yourself, or through slice managers in fleet mode: gates + diff review + negative control + blind adversarial critic), loop agents back on violations, and terminate only on programmatic truth. Use when the user asks to close a set of gaps/points/backlog items end-to-end, says "run the goal loop", or invokes /goal-loop. Not for a fix that closes a single gap (just do it), not for planning without execution, not for reviewing one outward deliverable.
 ---
 
 # Goal Loop — Designer, Judge, Verifier, Support
@@ -12,8 +12,11 @@ terminates only when every gap has machine-checkable evidence of being closed.
 
 Invocation: `/goal-loop <gap list | "self-define from audit"> [budget hint]`
 
-Companions: `/blueprint` is the plan phase for large work (fleet mode below); `/fleet-economics`
-is the single source for model routing, critic tiers, the verification ladder and token rules.
+## When not to use
+
+- Planning without a build: `/blueprint` plans it, and is the plan phase of fleet mode (below).
+- Model routing, critic tiers, the verification ladder or token rules on their own:
+  `/fleet-economics` is the single source for them.
 
 ---
 
@@ -25,9 +28,9 @@ A self-defined goal from a cold start is hallucination bait. Before defining any
    the session was started in (for example, a tracker MCP configured only in the project's
    folder). If the session started elsewhere, say so and restart in the project's folder
    before anything else.
-2. If you do not already hold a full mental model of the codebase this session, audit first:
-   read the real code (not just docs), the governance/architecture docs, and run the repo's
-   existing verification gates to confirm the baseline is green. **A baseline you did not run
+2. Audit first, unless this session has already done all three: read the real code (not just
+   docs), read the governance/architecture docs, and run the repo's existing verification gates
+   to confirm the baseline is green. **A baseline you did not run
    is a claim.** Docs, comments, PR texts and status notes are clues; only executable code and
    a run prove behaviour. An inventory made with one search idiom is not an inventory (a
    route check that greps `pathname ===` misses the regex routes).
@@ -35,7 +38,9 @@ A self-defined goal from a cold start is hallucination bait. Before defining any
    status snapshots, ADR open risks, "next improvement targets", the signed contract or the
    task's Definition of Done). Your job is to sharpen the codebase's backlog, not invent one.
 4. If the user supplied gap points, map each to concrete evidence (file:line, doc bullet,
-   missing test) before accepting it into the goal. Reject or reformulate vague points.
+   missing test) before accepting it into the goal. A point that maps to no concrete evidence
+   is reformulated until it does (the reformulation shown in the plan) or, when no wording
+   does, rejected and reported to the user.
 
 ## Phase 1 — Goal = gap ledger with programmatic truth
 
@@ -53,17 +58,20 @@ Rules:
   read its input (a checker exiting with a usage or read error is not a pass).
 - **A proof that has never failed proves nothing.** The negative control is decided here,
   before dispatch, not remembered at judgment (Phase 4 runs it).
-- If a gap cannot be given machine-checkable proof, either reshape it until it can, or
-  surface it to the user as out of scope for the loop.
-- Prefer gaps whose fix **grows the test surface** — the loop should leave the repo more
-  provable than it found it.
+- If a gap cannot be given machine-checkable proof, reshape it until it can; a gap for which
+  no reshaped form carries one is surfaced to the user as out of scope for the loop.
+- Among candidate gaps the repo's own priorities (Phase 0, item 3) do not order, a gap whose
+  fix **grows the test surface** (adds or tightens an automated check) ranks first — the loop
+  should leave the repo more provable than it found it.
 
 ## Phase 2 — Slice plan
 
-1. **Slices**: group gaps into agent-sized slices with clean file boundaries. One slice =
-   one implementer dispatch = one feature PR. The implementer may make several meaningful
-   commits on its slice branch (the implementation, then each correction round);
-   publication happens once, after judgment. One PR per feature does not mean one commit.
+1. **Slices**: group gaps into slices of one feature each with clean file boundaries: each
+   slice names the files it may touch, and two slices that share a file run in sequence
+   (item 6). One slice = one implementer dispatch = one feature PR. The implementer may
+   commit more than once on its slice branch (the implementation, then each correction
+   round); publication happens once, after judgment. One PR per feature does not mean one
+   commit.
 2. **Order**: dependency-driven. Default **sequential** — parallel agents in one worktree
    race on build artifacts, shared files, and doc edits. Go parallel only for provably
    disjoint file sets, using worktree isolation, and accept the merge-judging cost.
@@ -73,16 +81,27 @@ Rules:
    each other's rows.
 3. **Model per slice, critic tier, test level** (capability follows design risk, not
    prestige): classify every slice (mechanical, standard, complex) and staff and prove it by
-   `/fleet-economics` (§1 classes, §2 roles and models, §3 the verification ladder). In
-   short: the smallest model that finishes a fully specified slice, the flagship tier for
-   complex ones, critics only on the strongest models, the cheapest test level that proves
-   the gap. You stay on the session model as judge.
-4. **Token budget and shared usage:** `/fleet-economics` §0 and §4. If the user granted
+   `/fleet-economics` (§1 classes, §2 roles and models, §3 the verification ladder).
+   Standalone default: a slice is mechanical when its brief fixes every edit and names the
+   guarding test, complex when it crosses modules or changes a contract, schema, guardrail,
+   permission or persistence, standard otherwise; the fast tier builds a fully specified
+   (mechanical) slice, the balanced tier a standard one, the flagship tier a complex one;
+   critics only on the strongest tier; the test level is the narrowest one whose check goes
+   red without the fix. If `/fleet-economics` is installed, it replaces this default. You
+   stay on the session model as judge.
+4. **Token budget and shared usage:** `/fleet-economics` §0 and §4. Standalone default: a
+   fan-out of more than `DEFAULT fanout_probe = 3` parallel agents starts as one probe agent
+   and widens only after the probe finished without a quota error; stop on the first quota
+   error; every agent reports in a file plus a message of at most 150 words. If
+   `/fleet-economics` is installed, its §0 and §4 replace this default. If the user granted
    budget ("have tokens", "+Nk"), spend it in priority order on (a) stronger builders for
-   risky slices, (b) critic passes, (c) loop-backs instead of orchestrator shortcut fixes.
-   If budget is unstated, run lean (fewer, merged slices) and say so in the plan.
-5. Present the plan briefly (table: slice → point → locked design → class → models → test
-   level), then start immediately. Track slices with the task tools.
+   complex slices (item 3), (b) critic passes, (c) loop-backs instead of orchestrator
+   shortcut fixes. If budget is unstated, run lean and say so in the plan: no builder above
+   item 3's tier, no critic pass beyond Phase 4's, and gaps that touch the same files share
+   one slice (fewer, merged slices).
+5. Present the plan as one table, one row per slice (slice → point → locked design → class
+   → models → test level), plus item 4's lean note when the budget is unstated, then start
+   immediately. Track slices with the task tools.
 6. **Isolation and integration:**
    - **One git worktree per implementer**, one slice branch each (`<wave>/s1-<slug>` →
      `<repo-parent>/<repo>-<wave>-s1`), cut from `main` (a dependent slice from the branch
@@ -125,11 +144,12 @@ Rules:
      catalogue is an accepted, orchestrator-resolved conflict). Slices on the same file run
      sequentially on top of each other.
    - **Machine and repo traps, each one hit for real:** check free disk BEFORE creating
-     worktrees (a pair of real installs can take about 1 GB; a machine once ran out of disk
-     mid-wave and the installs died with `ENOSPC`); when reclaiming, delete only a
-     `node_modules` that is a real directory (on Windows, `Get-Item` reports an empty
-     `LinkType`), never a junction. Run ONE test suite at a time across agents on an 8 GB
-     machine (background watchers were killed by memory pressure). Staging paths with
+     worktrees, and create them only while free disk exceeds
+     `DEFAULT install_pair_disk = 1 GB` per pair of real installs they will hold (a machine
+     once ran out of disk mid-wave and the installs died with `ENOSPC`); when reclaiming,
+     delete only a `node_modules` that is a real directory (on Windows, `Get-Item` reports
+     an empty `LinkType`), never a junction. Run ONE test suite at a time across agents on
+     an 8 GB machine (background watchers were killed by memory pressure). Staging paths with
      `[id]` segments needs `git --literal-pathspecs add --`; plain `git add` treats the
      brackets as globs and skips the files silently. A stacked PR gets NO checks if the
      workflow's `pull_request` trigger is filtered to base `main`; the fix lives in the
@@ -148,8 +168,8 @@ Every implementer prompt must contain, in this order:
 1. **Context reading list** — the repo laws/conventions and exact files to read first.
 2. **The gap** — why it exists, citing repo evidence.
 3. **Design (locked — implement exactly)** — data shapes, endpoints, schemas, naming,
-   error codes, fallback semantics, exact assertion lists for new tests. Resolve the hard
-   questions yourself; where you delegate a micro-decision, say so explicitly.
+   error codes, fallback semantics, exact assertion lists for new tests. Resolve every design
+   question yourself; a micro-decision you delegate is named in the prompt as delegated.
 4. **Constraints** — no new deps unless granted, files allowed to touch, files forbidden
    (shared ledgers, live checkouts, settings and credentials), style-matching, docs that must
    be updated in the same slice (same-PR doc law), what is OUT of scope, the commit identity
@@ -184,12 +204,16 @@ agent's green report is a claim, not evidence.
    automated gates can't reach (client UX, visual behavior), verify directly — e.g. drive the
    real app with a scripted browser and assert the exact copy/DOM states; send the user
    screenshots as evidence — and only for the change types the ladder names.
+   Standalone default: every change type gets the checks this item lists, and the browser
+   check runs only for a change a UI renders. If `/fleet-economics` is installed, its
+   §3.2-3.3 replace this default.
    **Identity gate on every judged head:** `git log --format='%an <%ae> | %cn <%ce>'
    <base>..HEAD` shows only the identity the repo requires (the project's rules name it,
    author and committer). A commit under any other identity is a defect and is rewritten
    before anything is pushed (a personal identity once ended up on hundreds of commits
    across six branches; a reviewer found it, and every one had to be rewritten).
-   **Negative control for every fix that matters:** a test that has never failed proves
+   **Negative control for every fix that closes a ledger gap or a confirmed finding** (item
+   4's single-character/formatting trivia excepted): a test that has never failed proves
    nothing. Demand (from the agent, or do it yourself) one run with the fix reverted or
    the guard removed, and the exact assertion that went red. "Restoring the old route
    fails 26 tests" is evidence; "the suite is green" is not. Same for parity/fixture
@@ -207,34 +231,38 @@ agent's green report is a claim, not evidence.
    > file:line + concrete failure scenario. If you cannot construct a concrete failure,
    > say so — do not manufacture noise."
    Verify each critic finding yourself before acting — critics can be wrong; you arbitrate.
-   Tell the critic what it may execute (the suites, small probes against the real installed
-   libraries, read-only queries) and require the probe output in the report: a claim
-   reproduced against the installed library in the worktree beats a claim reasoned from a
-   docs page. Require a closing section "suspicions I could not turn into a failure" — the
-   absence of noise is part of the signal. Verify by MEASUREMENT where a finding rests on
-   data ("there are no such rows": query each environment, put the counts in the PR). A DO
-   NOT SHIP verdict is the loop working, not the loop failing: one critic stopped a submit
-   path that could never finish for large uploads and a resume path that fingerprinted
-   files the operator could not see; both had green suites.
-4. **Loop-back rule**: any confirmed violation → **SendMessage the same implementer** with
-   a corrective prompt (it retains context): name the violated standard, quote the exact
-   offending lines, state the expected end state, and scope the re-verification (docs-only
-   fix ≠ full suite). Do not silently fix it yourself — loop-back preserves provenance and
-   keeps the fix reasoned. Exception: single-character/formatting trivia may be fixed
-   inline if noted in the commit.
-5. **Iteration cap**: 3 loop-backs per slice. If still failing, stop, re-examine your own
-   design (the fault is usually the spec), and either re-design + fresh dispatch or
-   escalate to the user with the diagnosis.
+   Tell the critic what it may execute (the suites, single-file probes against the real
+   installed libraries, read-only queries) and require the probe output in the report: a
+   claim reproduced against the installed library in the worktree beats a claim reasoned
+   from a docs page. Require a closing section "suspicions I could not turn into a failure"
+   — the absence of noise is part of the signal. Verify by MEASUREMENT where a finding rests
+   on data ("there are no such rows": query each environment, put the counts in the PR). A
+   DO NOT SHIP verdict is the loop working, not the loop failing.
+
+   Example: one critic stopped a submit path that could never finish for large uploads and a
+   resume path that fingerprinted files the operator could not see; both had green suites.
+4. **Loop-back rule**: any confirmed violation → **send a corrective message to the same
+   implementer** (SendMessage in Claude Code; it retains context): name the violated
+   standard, quote the exact offending lines, state the expected end state, and scope the
+   re-verification by the fix's change type (item 2; docs-only fix ≠ full suite). Do not
+   silently fix it yourself — loop-back preserves provenance and keeps the fix reasoned.
+   Exception: single-character/formatting trivia may be fixed inline if noted in the commit.
+5. **Iteration cap**: 3 loop-backs per slice. If still failing, stop and re-examine your own
+   design first (three corrections against one spec did not converge, so the spec is the
+   first suspect). Re-design + fresh dispatch when the re-examination names the design fault
+   (for example the signal of fleet mode item 11: the confirmed findings of every round break
+   the same rule at a different place) and its fix stays inside the user's rulings and the
+   gap's locked programmatic truth; otherwise escalate to the user with the diagnosis.
 6. **Relay nothing unverified.** A claim about a system that you pass to the user, another
    session or another agent (a route exists, a tool covers a store, a row is closed) is
    checked against the source first. An agent's report is relayed only as the agent's report
    (a relayed "this covers your case" once cost another session a correction round; a "no
    such route exists" taken from a single grep had to be retracted).
 7. **Accept and publish**: the orchestrator accepts the exact candidate (the commit sha it
-   judged), keeps the implementer's meaningful commits including the correction rounds,
-   and sends publication instructions down the pipe (push, open the PR with the repo's
-   template, base per Phase 2). Commit messages state the mechanism and the verification
-   actually run; never claim a result that was not re-run.
+   judged), keeps the implementer's commits (the implementation and each correction round,
+   Phase 2 item 1), and sends publication instructions down the pipe (push, open the PR with
+   the repo's template, base per Phase 2). Commit messages state the mechanism and the
+   verification actually run; never claim a result that was not re-run.
 
 ## Phase 5 — Ship & truth table
 
@@ -259,12 +287,14 @@ agent's green report is a claim, not evidence.
 
 Proven on a run of 10 slices plus an integration over 17 hours: the orchestrator ended at
 67 % context, and every slice was judged with its own negative control. Use it when the work
-has more than a few slices or must survive a context compaction.
+has more than `DEFAULT fleet_slices = 3` slices, or when the user asks for a run that survives a
+context compaction.
 
 1. **Three files every agent reads first** (in the project's loop folder): a **primer** (goal,
    the user's rulings verbatim, measured facts, sources), a **protocol** (local-only rules,
    machine limits, repo law, proof rules, report shape), and its **own PRD**. No agent needs
-   the orchestrator's context; the orchestrator re-reads nothing big.
+   the orchestrator's context; the orchestrator re-reads no diff, full report or transcript
+   (item 3 names what it checks).
 2. **Plan phase as a team (full procedure: `/blueprint`):** an inventory manager with workers
    (facts with file:line, plus a verbatim requirements extract), a planner (plan, gap ledger,
    one PRD per slice), an **advisor** (strongest tier; may read the primer and the orchestrator
@@ -273,17 +303,22 @@ has more than a few slices or must survive a context compaction.
    transcripts), and a checker of every choice against the tracker's current AND future-dated
    items and the signed contract.
    Revise until the blind critic clears; the user approves the plan.
+   Standalone default: this team and this stop condition. If `/blueprint` is installed, its
+   procedure replaces this default.
 3. **Slice managers judge, the orchestrator checks.** One manager per slice spawns the
    implementer, reads the diff, runs the gates and every negative control itself, spawns a
    FRESH blind reviewer per round, loops back at most 3 times, writes the full report to a
-   file and sends at most 150 words. The orchestrator's final check per slice is short and
-   scripted: light gates and typecheck, the slice's own test files, identity, EOL, nothing on
-   a remote, the manager's full-suite log for the exact head, and ONE negative control of its
-   own on the slice's key fix (item 10, `/fleet-economics` §3.3). Then "accepted at <sha>",
-   ledger line, next slice.
+   file and sends at most 150 words. The orchestrator's final check per slice is scripted
+   and holds only these: the static checks and typecheck, the slice's own test files,
+   identity, EOL, nothing on a remote, the manager's full-suite log for the exact head, and
+   ONE negative control of its own on the slice's key fix (the ledger's negative control for
+   the slice's first gap row; item 10, `/fleet-economics` §3.3).
+   Standalone default: this list, and no second full-suite run on a head that already has
+   its log. If `/fleet-economics` is installed, its §3.3 replaces this default. Then
+   "accepted at <sha>", ledger line, next slice.
 4. **Durability:** report file per slice, a ledger written by the orchestrator only with
    clock-read stamps, a RESUME file with a state table (slice, branch, worktree, accepted
-   head, state), commits at every meaningful step. A compaction or a lost agent costs
+   head, state), a commit for the implementation and for each correction round (Phase 2, item 1). A compaction or a lost agent costs
    nothing: a fresh manager continues from the branch and the report file.
 5. **Nothing is dropped:** a finding outside a slice's files goes as a "Carried" section into
    the PRD of the slice that owns those files; a loop-back budget spent on a slice moves its
@@ -291,37 +326,57 @@ has more than a few slices or must survive a context compaction.
 6. **Disputes between agents** (critic versus planner, reviewer versus implementer) are
    settled by a probe on the real data shape, never by argument; the probe output goes into
    the report.
-7. **Machine guard, adapt per machine:** measure free memory before every heavy job; a floor
-   plus lock directories (`mkdir` is atomic) for heavy jobs; amend it live when the user's
-   own load changes (on an 8 GB laptop: a floor of 1.5 to 2 GB, one or two slots).
-   Worktrees and installs on the disk with space.
+7. **Machine guard, adapt per machine:** measure free memory before every heavy job (an
+   install, a build, a test-suite run, a browser run); start one only while free memory is
+   above the floor and a slot is free, with lock directories (`mkdir` is atomic) as the
+   slots; both change only through the ASK below (on an 8 GB laptop the floor was
+   1.5 to 2 GB and the slots one or two; the defaults take the stricter end:
+   `DEFAULT memory_floor = 2 GB`, `DEFAULT heavy_slots = 1`). Worktrees and installs go on a
+   disk with more than `install_pair_disk` free per pair of real installs (Phase 2, item 6).
+   ASK when the user says their own load changed: "Memory floor and heavy-job slots are <current values>. New values?" → new values: use them / unchanged: keep them / nobody to ask: keep the current values and report the question.
 8. **Discipline per role:** workers apply `/rigor` and `/proof`; reviewers and critics
    `/adversarial-review`; managers and critics run `/paranoia` over their own output before
    reporting; the orchestrator runs `/paranoia` before the handoff.
+   Standalone default: workers mark every claim verified, inferred or assumed and show each
+   check they cite failing once on a known-bad case; reviewers and critics run a bug hunt,
+   then try to disprove each finding, and report each as confirmed (with its triggering
+   input), disproved (citing the code) or unresolved; managers, critics and the orchestrator
+   re-check their own output one defect class per pass until a pass finds only cosmetics.
+   Each of these skills, if installed, replaces its part of this default.
 9. **Local first:** no push, PR, tracker task or time record until the user has gone through
-   the whole line; the orchestrator's few approved tracker moves are logged in the ledger.
+   the whole line; every tracker move the user approved for the orchestrator is logged in
+   the ledger.
 10. **Test economy:** `/fleet-economics` §3 (change type → cheapest proving level; the full
     suite once per candidate, run by the slice manager on the builder's clean committed head
     (the builder does not run it), once on the whole line by the orchestrator before any PR;
     browser and live-model runs only at the release candidate, for the change types that need
     them). The final assurance is unchanged: a full run exists for every candidate and for the
-    whole line.
-11. **Rotate a slice manager after about three review rounds** (one slice ran ten rounds; its
-    manager's context neared 800 k tokens and one worker overflowed): a long-lived manager
-    gets slow on every turn and loses detail; hand the slice to a FRESH manager with a
-    self-contained summary (current head, what each round closed, what is open, the locked
-    design) instead. The same rounds count is the signal to re-examine the design itself:
-    when every review finds a new surface form of the same problem, stop enumerating bad
-    forms and switch to allowed (canonical) forms that fail closed, or to a structure that
-    makes the defect impossible (for model output: code fills facts into placeholders, the
-    model never writes the figure).
+    whole line. Standalone default: while working, the narrowest level whose check goes red
+    without the fix; the two full runs named here; at the release candidate a browser run
+    only for a change a UI renders and a live-model run only for a changed prompt. If
+    `/fleet-economics` is installed, its §3 replaces this default.
+11. **Agent lifetime** (one slice ran ten review rounds; its manager's context neared 800 k
+    tokens and one worker overflowed; an agent that keeps running gets slow on every turn
+    and loses detail). Standalone default: retire a manager or worker when its reported
+    token use reaches 60 % of its context window, when it has delivered and its next job is
+    a new deliverable, or when its slice reached 3 review rounds and the third still has a
+    confirmed finding; resume it only for a bounded loop-back on its own deliverable (named
+    findings, no new reading). If `/fleet-economics` is installed, its §2.1 agent-lifetime
+    rule replaces this default. The FRESH manager's brief is built only from durable files
+    (current head, what each round closed, what is open, the locked design), never the old
+    transcript. The same 3 rounds are the signal to re-examine the design itself: when the
+    confirmed findings of every one of those rounds break the same rule at a different place,
+    stop enumerating bad forms and switch to allowed (canonical) forms that fail closed, or
+    to a structure that makes the defect impossible (for model output: code fills facts into
+    placeholders, the model never writes the figure).
 
 ## Hard rules
 
 - Agents implement; the orchestrator designs, judges, verifies, supports. In fleet mode slice
   managers run the per-slice judgment and the orchestrator's scripted check is the acceptance.
 - **The shape of the loop:** task → brainstorm with the user until the orchestrator provably
-  understands it → orchestrator scopes the roadmap → segments it into pedantically scoped
+  understands it (the user confirms the orchestrator's written restatement of the task) →
+  orchestrator scopes the roadmap → segments it into pedantically scoped
   single features → writes ONE locked PRD per feature → dispatches ONE implementer per
   feature in its own worktree → keeps every agent's pipe open → does nothing to a slice
   until that agent reports done → distrusts "done" (judge, gates, negative control, critic)
@@ -331,12 +386,15 @@ has more than a few slices or must survive a context compaction.
   never writes a shared ledger.
 - No gap is "done" without its pre-declared programmatic proof and a negative control that
   went red.
-- Never trust agent self-reports; re-run everything that matters; relay nothing unverified.
+- Never trust agent self-reports; re-run every check your acceptance rests on (Phase 4 item 2;
+  in fleet mode, fleet mode item 3); relay nothing unverified.
 - Every judged head carries only the repo's required commit identity.
 - No external write (tracker, mail, time records, code host) without the user's approval of
   exactly that write.
 - Sequential by default; parallelism must be justified by disjointness.
-- Deviations from locked designs require stated reasons; judge them on merit.
+- Deviations from locked designs require stated reasons; accept one only when you confirmed
+  its stated reason yourself (a probe, a read of the source) and the gap's proof and negative
+  control still hold; otherwise loop back (Phase 4 item 4).
 - The loop ends at proof, not at fatigue and not at context length.
 
 ## Closing block (required) — the programmatic truth table
