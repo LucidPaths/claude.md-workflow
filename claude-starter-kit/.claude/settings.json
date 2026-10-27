@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/session-start.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.py\"",
             "timeout": 10,
             "statusMessage": "Loading project context..."
           }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/maintenance-check.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/maintenance-check.py\"",
             "timeout": 10,
             "statusMessage": "Checking if docs need updating..."
           }
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/pre-compact.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact.py\"",
             "timeout": 15,
             "statusMessage": "Saving state before compaction..."
           }
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/session-end.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-end.py\"",
             "timeout": 10,
             "statusMessage": "Saving working state..."
           }
@@ -54,7 +54,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.claude/hooks/precommit-doc-check.py\"",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/precommit-doc-check.py\"",
             "timeout": 10,
             "statusMessage": "Checking documentation..."
           }

@@ -1,10 +1,10 @@
-# /research-decide — Two-Phase Task Execution
+# Research Then Implement — Two-Phase Task Pattern
 
 Separate research from implementation to prevent context bloat.
 
 ## Instructions
 
-When this skill is invoked (or when a task clearly requires significant research before coding), execute in two phases:
+When a task needs significant research before coding, use this reference pattern (not an invocable skill):
 
 ### Phase 1: Research & Decide
 
@@ -42,7 +42,7 @@ When this skill is invoked (or when a task clearly requires significant research
 ### Phase 2: Implement
 
 1. **Read** only the decision file + the specific source files listed in it
-2. **Do not** re-explore or second-guess — execute the plan
+2. **Execute** the plan while its premises hold. If new evidence invalidates a premise, revisit the affected decision and acceptance checks before proceeding.
 3. **Verify** each acceptance criterion as you go
 4. **Report** completion against the criteria
 
