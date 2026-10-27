@@ -9,7 +9,7 @@
 
 1. **Test the production path.** Tests must exercise the actual code flow, not a synthetic setup.
 2. **Trace the full data flow.** If A triggers B triggers C, verify A→C end-to-end.
-3. **Run the full test suite once before submitting**; while working, the tests that import or name the changed files. The test count drops only with every removed or disabled test named in the PR with its reason; an unnamed drop fails the gate. Never delete, skip or loosen a failing test to get green; rerun it once on the base commit, and report a failure there as pre-existing.
+3. **Run the full test suite once before submitting**; while working, the tests that import or name the changed files. The test count drops only with every removed or disabled test named in the PR with its reason; an unnamed drop fails the gate. A failing test is deleted, skipped or loosened only when the intended behaviour changed, with that behaviour named in the PR; otherwise the code is fixed. Rerun a failing test once on the base commit, and report a failure there as pre-existing.
 4. **Find the siblings.** Every fix gets a codebase-wide search by meaning, not only by text (Coding Standard #4).
 5. **Check the Principle Lattice.** Score your changes against all 5 principles in `docs/PRINCIPLE_LATTICE.md`. This is not decorative — enforce it actively on every change, or the principles become wallpaper. Ask yourself each one explicitly: Modular? Simple? Errors visible? Pattern fixed everywhere? Secrets safe?
 6. **No dead code.** If you added a function, something must call it (Coding Standard #3).
@@ -54,7 +54,7 @@ A check counts no higher than its weakest property: it reached the claim's targe
 and nobody edited it in the same task to make it pass. A passing test against the wrong target, an
 empty population, a skipped or filtered run, or a test edited to pass is no result at all. For a
 claim about an internal library, levels 2 and 3 are equal. Never stop at level 6; at minimum reach
-level 4, and a bug fix or behaviour change reaches level 1 or 2. Why: a passing test is not proof —
+level 4, and a bug fix or behaviour change in code reaches level 1 or 2. Why: a passing test is not proof —
 29.6% of SWE-bench patches that passed the tests behaved differently from the developer's fix
 ("Are 'Solved Issues' in SWE-bench Really Solved Correctly?", 2025), and an agent with access to the
 tests "may delete failing tests rather than fix the underlying bug" (ImpossibleBench, 2025).

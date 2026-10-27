@@ -432,8 +432,8 @@ Five always-loaded rules rewritten against what frontier labs and papers report,
   a new check. A remainder outside your authority is recorded with its owner; the class stays open. The unsourced
   "the same mistake exists in 3-5 other places" is gone
 - **Trap 4**: "ask — don't infer; the cost of asking is near zero" became: read the sources first; ask when two
-  readings give different deliverables or the step writes outside the repo, reaches people or cannot be undone;
-  otherwise proceed with a stated assumption. Anthropic's constitution lists over-asking on simple agentic tasks
+  readings give different deliverables or the step writes to a system others use or cannot be undone, unless
+  already authorized; otherwise proceed with a stated assumption. Anthropic's constitution lists over-asking on simple agentic tasks
   as a failure
 - **Verification hierarchy**: a check shown to fail without the change is first; the real entry point ranks above a
   passing test for user-visible behaviour; a test edited in the same task, or one that cannot reach the claim, is
@@ -458,9 +458,9 @@ Five always-loaded rules rewritten against what frontier labs and papers report,
 Every slice still gets a critic; its class now sizes what the critic reads and how many rounds it gets, and
 full suites run where they prove something. A first draft of this entry dropped the critic for mechanical and
 prose-only slices. It was reversed before merge: agent-read text is behaviour, and no test notices a wrong line.
-Anthropic's Claude Code postmortem (23.04.2026) is the case: a one-line system-prompt change passed weeks of
-internal testing ("no regressions in the set of evaluations we ran") and then showed "a 3% drop" on a broader
-evaluation.
+Anthropic's Claude Code postmortem (23.04.2026) is the case: a system-prompt instruction to reduce verbosity passed
+weeks of internal testing ("no regressions in the set of evaluations we ran"); a later evaluation "showed a 3%
+drop for both Opus 4.6 and 4.7".
 
 **Changed:**
 - **`/fleet-economics`**: every slice gets a fresh-context critic on the flagship tier or above; the builder's
