@@ -201,7 +201,7 @@ Every decision Claude makes is scored against these. If a choice violates one, i
 
 `CLAUDE.md` is the heavyweight file. It contains:
 
-- **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix ALL instances of a pattern, single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary (also in `.claude/rules/coding-standards.md`)
+- **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix the cause and every instance (making a recurring class impossible), single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary (also in `.claude/rules/coding-standards.md`)
 - **8 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, retry loops, verification language, etc.) plus an anti-rationalization table (also in `.claude/rules/traps.md`)
 - **Verification language rule** — forbidden phrases ("should work now", "looks correct") that require evidence from tool calls before any completion claim
 - **Anti-rationalization patterns** — catches the model constructing arguments for why traps don't apply ("this is different because..." = it's not)
@@ -291,7 +291,7 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 | Confident output where the honest answer is "I don't know" | `/unverified` - the five seams where uncertainty dies |
 | Work that only runs on the author's machine | `/shippable` - the cold-clone test |
 | A long session accumulating silent drift | `/paranoia` - one defect class per pass, to convergence |
-| Single-instance fix creates false safety | Coding Standard #4: fix ALL instances or none |
+| Single-instance fix creates false safety | Coding Standard #4: fix the cause and every instance; make a recurring class impossible |
 | Cross-file values drift silently | Cross-file contracts table + Coding Standard #5 |
 | Vague acceptance criteria, gold-plating | Task contract template with explicit done conditions |
 | Two-layer validation updated on one side only | Coding Standard #8 + Trap #8 |
@@ -421,14 +421,46 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 
 ## Changelog
 
+### 2026-10-27 — Rules on Evidence
+
+Five always-loaded rules rewritten against what frontier labs and papers report, each source read on its own page.
+
+**Changed:**
+- **Coding Standard #4** (and Trap 6, the Principle Lattice, the sample): "fix every instance, or fix none" became
+  fix the cause, then every instance: name the mechanism, find siblings by meaning, fix them all in one change, and
+  make a class that recurs impossible — sweep first, then turn the guard on, the order Google uses before it enables
+  a new check. A remainder outside your authority is recorded with its owner; the class stays open. The unsourced
+  "the same mistake exists in 3-5 other places" is gone
+- **Trap 4**: "ask — don't infer; the cost of asking is near zero" became: read the sources first; ask when two
+  readings give different deliverables or the step writes to a system others use or cannot be undone, unless
+  already authorized; otherwise proceed with a stated assumption. Anthropic's constitution lists over-asking on simple agentic tasks
+  as a failure
+- **Verification hierarchy**: a check shown to fail without the change is first; the real entry point ranks above a
+  passing test for user-visible behaviour; a test edited in the same task, or one that cannot reach the claim, is
+  no result
+- **Quality gate #3**: the full suite once before submitting; a test count drops only with every removed test named;
+  a failing test is never deleted to get green
+- **Subagents**: "subagents burn 5-10x more tokens for the same result" had no source. Replaced by a rule by task
+  shape with Anthropic's measured costs
+
+**Sources (read 27.10.2026):**
+[Claude Code postmortem, 23.04.2026](https://www.anthropic.com/engineering/april-23-postmortem) ·
+[Building multi-agent systems, 23.01.2026](https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them) ·
+[How we built our multi-agent research system, 13.06.2025](https://www.anthropic.com/engineering/multi-agent-research-system) ·
+[Claude's constitution](https://www.anthropic.com/constitution) ·
+[Claude Code memory docs](https://code.claude.com/docs/en/memory) ·
+[Software Engineering at Google, ch. 20 Static Analysis](https://abseil.io/resources/swe-book/html/ch20.html) ·
+[Are "Solved Issues" in SWE-bench Really Solved Correctly? (arXiv 2503.15223)](https://arxiv.org/abs/2503.15223) ·
+[ImpossibleBench (arXiv 2510.20270)](https://arxiv.org/abs/2510.20270)
+
 ### 2026-10-27 — Review Where It Pays
 
 Every slice still gets a critic; its class now sizes what the critic reads and how many rounds it gets, and
 full suites run where they prove something. A first draft of this entry dropped the critic for mechanical and
 prose-only slices. It was reversed before merge: agent-read text is behaviour, and no test notices a wrong line.
-Anthropic's Claude Code postmortem (23.04.2026) is the case: a one-line system-prompt change passed weeks of
-internal testing ("no regressions in the set of evaluations we ran") and then showed "a 3% drop" on a broader
-evaluation.
+Anthropic's Claude Code postmortem (23.04.2026) is the case: a system-prompt instruction to reduce verbosity passed
+weeks of internal testing ("no regressions in the set of evaluations we ran"); a later evaluation "showed a 3%
+drop for both Opus 4.6 and 4.7".
 
 **Changed:**
 - **`/fleet-economics`**: every slice gets a fresh-context critic on the flagship tier or above; the builder's

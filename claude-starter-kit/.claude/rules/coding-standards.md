@@ -16,9 +16,9 @@ Every error must say what happened, why, and what the user can do about it. `"So
 
 If you replace a function, remove the old one. No commented-out code, no unused imports, no `_`-prefixed variables that nothing references. If you add a function, something must call it.
 
-### 4. Fix All Instances
+### 4. Fix the Cause, Then Every Instance
 
-When you find a bug, grep for the same pattern across the entire codebase. Fix every instance, or fix none. One fix creates a false sense of safety. This applies to security lists, validation, naming — everything.
+Name the mechanism that produced the bug in one sentence (commit message or task record); a sentence that only restates the symptom means the cause is not found yet. Find its siblings by meaning, not only by text (callers, the same type or contract, the same check in another layer, other branches and clients), and fix them all in the same change; "fix none" is never the answer. When the same defect sits in 2 or more places or comes back, make the class impossible (one source of truth, a type, a parser at the boundary, a lint or compile error): sweep the existing instances first, then turn the guard on, as Google does before it enables a new check ("we first need to clean up all instances of that problem in the codebase"). An instance you may not change gets a record (path, owner, the check that finds it), and the class stays open until it is fixed. This applies to security lists, validation, naming — everything.
 
 ### 5. Single Source of Truth for Cross-File Contracts
 

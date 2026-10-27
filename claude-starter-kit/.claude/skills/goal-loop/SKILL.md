@@ -86,7 +86,7 @@ Rules:
    guarding test, complex when it crosses modules or changes a contract, schema, guardrail,
    permission or persistence, standard otherwise (agent-read text such as skills, prompts and
    rule files is classed by what it governs: complex when it changes a guardrail, permission,
-   merge, deploy or external-write rule), and prose-only when every changed file is human
+   merge, deploy, external-write or deletion rule), and prose-only when every changed file is human
    documentation or every changed hunk a comment or catalogue string; the fast tier builds a
    fully specified (mechanical) slice, the balanced tier a standard one, the flagship tier a
    complex one; every slice gets a fresh-context critic on the flagship tier or above (one
@@ -319,7 +319,7 @@ context compaction.
    procedure replaces this default.
 3. **Slice managers judge, the orchestrator checks.** One manager per slice spawns the
    implementer, reads the diff, runs the gates and every negative control itself, spawns a
-   FRESH blind reviewer per round, sized by the slice's class, loops back at most 3 times, writes the full report to a
+   FRESH reviewer per round, sized by the slice's class and blind on a complex one, loops back at most 3 times, writes the full report to a
    file and sends at most 150 words. The orchestrator's final check per slice is scripted
    and holds only these: the static checks and typecheck, the slice's own test files,
    identity, EOL, nothing on a remote, the manager's candidate-run log for the exact head, and

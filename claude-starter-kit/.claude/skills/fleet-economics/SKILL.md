@@ -45,15 +45,17 @@ class, or split the slice so its mechanical part can go down a tier.
 **Agent-read text** (skills, prompts, instruction and rule files, tool descriptions, PRDs) is behaviour: an agent acts
 on every line, and no test notices a wrong one. Class it by what it governs: complex when it changes a rule on a
 guardrail, a permission, a merge, a deploy, an external write or a deletion; mechanical when no word of an imperative,
-a condition, a number or a list item changes (typos, whitespace, links); standard otherwise.
+a condition, a number or a list item changes (typos, whitespace, a link whose target stays the same); standard
+otherwise.
 
 **Prose-only** is the mark for text only people read, read from the diff: every changed file is human documentation (a
 README, a changelog) or every changed hunk is a comment or a catalogue string. It sets the critic's input (§2.1) and the
-test level (§3.2).
+test level (§3.2); a prose-only slice takes the prose-only critic row whatever its class.
 
-Origin: a one-line system-prompt change that capped text between tool calls passed weeks of internal testing ("no
-regressions in the set of evaluations we ran") and then showed "a 3% drop" on a broader evaluation; Anthropic now runs
-"a broad suite of per-model evals for every system prompt change" (Claude Code postmortem, 23.04.2026).
+Origin: a system-prompt instruction to reduce verbosity ("keep text between tool calls to ≤25 words") passed weeks of
+internal testing ("no regressions in the set of evaluations we ran"); a later evaluation "showed a 3% drop for both
+Opus 4.6 and 4.7", and Anthropic wrote: "We will run a broad suite of per-model evals for every system prompt change to
+Claude Code" (Claude Code postmortem, 23.04.2026).
 
 ---
 
@@ -81,7 +83,7 @@ available model still does all judging.
 | Builder, standard | balanced | default | |
 | Builder, complex | flagship | default | |
 | Critic, mechanical slices | flagship, fresh context | default | reads the diff and the brief only, no probes: did the builder do exactly what the brief fixed, and nothing else? |
-| Critic, prose-only slices | flagship, fresh context | default | reads the diff and the sources its claims cite: every number, name and claim checked against its source |
+| Critic, prose-only slices, whatever their class | flagship, fresh context | default | reads the diff and the sources its claims cite: every number, name and claim checked against its source |
 | Critic, standard slices | flagship, fresh context | default | reads the diff and the spec and runs probes; for agent-read text it reads the changed file whole as a fresh agent would: contradictions with neighbouring rules, steps it cannot follow, references that do not resolve |
 | Critic, complex slices and the plan | strongest, blind | default | reads requirements, the artifact and the code; never the orchestrator's notes |
 | Reading workers (inventories) | a script first, wherever a regex or a parser can do the extraction; fast for extraction by an explicit rule (enumerations, verbatim quotes, reformatting); balanced for reading that classifies or judges | highest for fast | the manager spot-checks every load-bearing claim |
@@ -98,8 +100,8 @@ available model still does all judging.
 - **A finding counts with its evidence:** file and line, plus the input or reading that shows the defect. A finding
   without them goes back to the critic once and is dropped if it comes back without them. The judge verifies every
   finding before acting on it; critics also report defects that are not there.
-- **Critic model:** a model other than the builder's when the bench has one; on the same model, the critic runs in a
-  fresh context and its report says "same model".
+- **Critic model:** a model other than the builder's when the bench has one at the critic's tier or above; otherwise the
+  builder's model in a fresh context, and the critic's report says "same model".
 - **Escalate, do not repeat:** two failed rounds at one tier → re-dispatch the slice one tier up with the reports,
   instead of a third round.
 - **Agent lifetime.** Precondition: every agent writes its deliverable to files as it goes, so retiring it loses
@@ -156,7 +158,8 @@ the host app; M = opt-in live tests with a real key.
 | Persistence, schema version | C + compatibility (an old record still reads) | F once | nothing extra |
 | Security, scope, permissions | C with the refused paths as negative cases | F once | B if the UI exposes it |
 
-A slice classified complex (§1) runs F once per candidate whatever its row says. A repository rule that demands more
+A slice classified complex (§1) runs F once per candidate whatever its row says, except agent-read text, which keeps its
+own row. A repository rule that demands more
 (its contributing file, its instructions file) overrides this table.
 
 ### 3.3 Who runs what
@@ -196,9 +199,9 @@ A slice classified complex (§1) runs F once per candidate whatever its row says
 | Fast-tier census workers were briefed to decide which lines were rules; every verdict would have had to be made again | §2.1: the fast tier never classifies, judges or decides |
 | A benchmark sweep emptied the shared budget of the user's running sessions | principle 5 |
 | Browser end-to-end planned for a reworded string | §3.2, first row |
-| Critics placed on a mid tier "to save tokens", missing what a stronger model would have refuted | §2.1: a critic that runs is never below flagship |
+| Critics placed on a mid tier "to save tokens", missing what a stronger model would have refuted | §2.1: a critic is never below flagship |
 | A rewrite of skill text was wrapped in census workers, batches and a new lint; the user called it a circus | §2.1: one critic per slice, sized to it, no pipeline around it; §3.2: no full suite for wording |
-| A one-line system-prompt change passed internal evaluations and showed a 3% drop on a broader one | §1 agent-read text; §2.1 a critic on every slice; §3.2 eval scenarios for agent-read text |
+| A system-prompt instruction passed weeks of internal evaluations; a later evaluation showed a 3% drop | §1 agent-read text; §2.1 a critic on every slice; §3.2 eval scenarios for agent-read text |
 
 ---
 

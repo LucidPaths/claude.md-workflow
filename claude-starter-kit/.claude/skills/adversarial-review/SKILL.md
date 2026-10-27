@@ -1,11 +1,13 @@
 ---
 name: adversarial-review
-description: Three-pass adversarial verification that finds real bugs in a change before merge — an overclaiming bug-hunt, an overclaiming disproof, then adjudication. Use when the user runs /adversarial-review or asks to adversarially review, stress-test, or prove the correctness of a diff, function, smart contract, or PR before merging. Mandatory before merging smart-contract / fund-release changes and any complex change (crosses modules; changes a contract, schema, guardrail, permission or persistence, or an agent rule that governs one). A smaller change gets one fresh-context review pass sized to it instead.
+description: Three-pass adversarial verification that finds real bugs in a change before merge — an overclaiming bug-hunt, an overclaiming disproof, then adjudication. Use when the user runs /adversarial-review or asks to adversarially review, stress-test, or prove the correctness of a diff, function, smart contract, or PR before merging. Mandatory before merging smart-contract / fund-release changes and any complex change (crosses modules; changes a contract, schema, guardrail, permission or persistence; or an agent rule on a guardrail, permission, merge, deploy, external write or deletion). A smaller change gets one fresh-context pass over its diff against its spec instead. Run by a fresh agent, never in the author's context.
 ---
 
 # Adversarial Review — Three-Pass Verification
 
 Exploit sycophancy bias against itself to find *real* bugs. Models find what they think you want, so run two opposing passes that each overclaim in opposite directions, then adjudicate. Opposing passes expose assumptions a single pass keeps; surviving the disproof is not confirmation — a finding counts when it carries its triggering input.
+
+**Who runs it:** a fresh agent that holds no part of the author's conversation (a subagent briefed with the diff and the spec), never the author's own context: an author reviewing in its own context agrees with itself.
 
 ## Before you start — ground the review
 
