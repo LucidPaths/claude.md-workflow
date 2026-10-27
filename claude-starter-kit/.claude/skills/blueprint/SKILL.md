@@ -5,7 +5,7 @@ description: Rigorous team planning before a complex build or deliverable — in
 
 # Blueprint — plan it as a team before anyone builds
 
-Run before any build, this plan phase catches what a build would otherwise ship — a requirement the design violates (one
+Run before a build that spans 3 or more steps, owners, contracts or tickets, this plan phase catches what a build would otherwise ship — a requirement the design violates (one
 user could list another user's records), a request that crashes on an input shape nobody measured, identifiers counted as
 figures, a test whose premise is false, a guardrail edit hidden inside a build step — and it works for any complex job:
 software, migrations, infrastructure, proposals, deliverables for a client.
@@ -61,8 +61,8 @@ the contract, the user's earlier words in this session.
 
 ## 2. The three shared files (written by the orchestrator)
 
-Every agent reads them first, so a dispatch points to them instead of repeating their content in the orchestrator's
-context.
+Every agent reads the ones its role may read (section 6 names what the blind critic never opens: the primer) first, so a
+dispatch points to them instead of repeating their content in the orchestrator's context.
 
 ### 2.1 Primer (`<date>-<job>-primer.md`) — shared context, never given to the blind critic
 1. Who and what: people by role (and name if internal), the product, the repositories, the trackers.
@@ -212,7 +212,7 @@ Answers, with evidence, ranked by impact:
 6. Machine and time: realistic for the deadline and the hardware? What to merge or cut.
 
 ### 6.2 Blind critic (strongest tier; the strongest review)
-- **Must not open**: the primer, the ledger, the inventory's opinions, any agent report, the advisor's file, the
+- **Must not open**: the primer, the orchestrator's ledger (the plan's gap ledger is part of the artifact it reads), the inventory's opinions, any agent report, the advisor's file, the
   orchestrator's revision files, any transcript. If a PRD says "read the primer", the critic ignores it.
 - **Reads**: the protocol (rules only), the requirements extract (its spec), the plan and the step PRDs (the artifact),
   and the code and data directly, running read-only probes that need no install, build, full-suite or end-to-end run.

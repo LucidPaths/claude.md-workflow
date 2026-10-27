@@ -26,7 +26,7 @@ any model, with or without the rest of the kit.
 
 | Skill | Use it when |
 |-------|-------------|
-| `/adversarial-review` | Before merging a diff. Two passes that overclaim in *opposite* directions, then adjudication. The intersection of "the bug hunter couldn't miss it" and "the disprover couldn't kill it" is remarkably accurate. |
+| `/adversarial-review` | Before merging a diff. Two passes that overclaim in *opposite* directions, then adjudication. A finding survives only with its triggering input; no accuracy figure is claimed for the method. |
 | `/shippable` | Before submitting, demoing or handing over. There is the work you did and the work that *arrives* — the gap is invisible to exactly one person: you. |
 
 **Then these four, as the situation calls for them.**
@@ -43,10 +43,10 @@ want that.
 
 | Skill | Use it when |
 |-------|-------------|
-| `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree. |
+| `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree, as far as its dry-proof reaches. |
 | `/blueprint` | Before a build that spans several steps, owners or contracts. Facts before design, design before code, refutation before approval: a fact inventory, locked design principles, a gap ledger whose every proof has a negative control, and a blind critic who never sees the orchestrator's reasoning. A plan reviewed only by its author is a wish list. |
 | `/goal-loop` | Closing a set of gaps end to end with subagents. Every gap declares its terminating proof *before* work starts; "the agent said so" never counts. |
-| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, never puts a critic below the flagship tier, and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
+| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, gives every slice a critic sized to its class (never below the flagship tier), and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
 
 ### Why folder format matters
 
@@ -81,9 +81,12 @@ including this one.
 
 **Instruction adherence decays, and more prose makes it worse.**
 
-Two arguments get conflated here and only one of them still matters. The **capacity** argument — long
-instructions eat your context budget — is largely dead. Against a million-token window a 16KB
-instruction set is a rounding error. **Do not trim your rules to save tokens.**
+Two arguments get conflated here. The **capacity** argument — long instructions crowd out the work —
+is weak against a million-token window. The **cost** argument is not: an always-loaded rule is re-read
+on every turn of every session (at the cache-read rate when the prefix is warm), and the
+[memory docs](https://code.claude.com/docs/en/memory) say it plainly: "Longer files consume more context
+and reduce adherence." Keep the rules that decide something and cut duplication and contradiction.
+Neither is the reason this kit is built the way it is.
 
 The argument that survives is **structural**, which is why it is worth building on: it does not
 depend on how well any particular model follows instructions, so it does not expire when the models
@@ -105,7 +108,7 @@ as strongly**, and another paragraph telling the model to try harder buys nothin
 What works is making non-compliance **visible in the output**. Not "verify your claims," but
 *"end with a table of every claim and the source you read for it."* An instruction the model can
 satisfy by asserting it complied is not enforcement. An instruction that requires a filled-in
-artifact is.
+artifact makes an omission visible; what the artifact says still needs checking.
 
 Every skill here ends with a required closing block for exactly this reason - `/proof` must print
 its invariant, population, command, fail-proof and what it merely trusted; `/scalpel` must print
@@ -199,7 +202,7 @@ Every decision Claude makes is scored against these. If a choice violates one, i
 
 `CLAUDE.md` is the heavyweight file. It contains:
 
-- **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix ALL instances of a pattern, single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary (also in `.claude/rules/coding-standards.md`)
+- **8 coding standards** — simple solutions over complex ones, actionable error messages, no dead code, fix the cause and every instance (making a recurring class impossible), single source of truth for cross-file contracts, User-Agent headers on API calls, closed-by-default security, update both sides of a boundary (also in `.claude/rules/coding-standards.md`)
 - **8 documented behavioral traps** — real failure modes with "Stop." interrupts (premature optimization, scope creep, single-instance fixes, sycophantic agreement, retry loops, verification language, etc.) plus an anti-rationalization table (also in `.claude/rules/traps.md`)
 - **Verification language rule** — forbidden phrases ("should work now", "looks correct") that require evidence from tool calls before any completion claim
 - **Anti-rationalization patterns** — catches the model constructing arguments for why traps don't apply ("this is different because..." = it's not)
@@ -289,7 +292,7 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 | Confident output where the honest answer is "I don't know" | `/unverified` - the five seams where uncertainty dies |
 | Work that only runs on the author's machine | `/shippable` - the cold-clone test |
 | A long session accumulating silent drift | `/paranoia` - one defect class per pass, to convergence |
-| Single-instance fix creates false safety | Coding Standard #4: fix ALL instances or none |
+| Single-instance fix creates false safety | Coding Standard #4: fix the cause and every instance; make a recurring class impossible |
 | Cross-file values drift silently | Cross-file contracts table + Coding Standard #5 |
 | Vague acceptance criteria, gold-plating | Task contract template with explicit done conditions |
 | Two-layer validation updated on one side only | Coding Standard #8 + Trap #8 |
@@ -418,6 +421,70 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-10-27 — Rules on Evidence
+
+Five always-loaded rules rewritten against what frontier labs and papers report, each source read on its own page.
+
+**Changed:**
+- **Coding Standard #4** (and Trap 6, the Principle Lattice, the sample): "fix every instance, or fix none" became
+  fix the cause, then every instance: name the mechanism, find siblings by meaning, fix them all in one change, and
+  make a class that recurs impossible — sweep first, then turn the guard on, the order Google uses before it enables
+  a new check. A remainder outside your authority is recorded with its owner; the class stays open. The unsourced
+  "the same mistake exists in 3-5 other places" is gone
+- **Trap 4**: "ask — don't infer; the cost of asking is near zero" became: read the sources first; ask when two
+  readings give different deliverables or the step writes to a system others use or cannot be undone, unless
+  already authorized; otherwise proceed with a stated assumption. Anthropic's constitution lists over-asking on simple agentic tasks
+  as a failure
+- **Verification hierarchy**: a check shown to fail without the change is first; the real entry point ranks above a
+  passing test for user-visible behaviour; a test edited in the same task, or one that cannot reach the claim, is
+  no result
+- **Quality gate #3**: the full suite once before submitting; a test count drops only with every removed test named;
+  a failing test is never deleted to get green
+- **Subagents**: "subagents burn 5-10x more tokens for the same result" had no source. Replaced by a rule by task
+  shape with Anthropic's measured costs
+
+**Sources (read 27.10.2026):**
+[Claude Code postmortem, 23.04.2026](https://www.anthropic.com/engineering/april-23-postmortem) ·
+[Building multi-agent systems, 23.01.2026](https://claude.com/blog/building-multi-agent-systems-when-and-how-to-use-them) ·
+[How we built our multi-agent research system, 13.06.2025](https://www.anthropic.com/engineering/multi-agent-research-system) ·
+[Claude's constitution](https://www.anthropic.com/constitution) ·
+[Claude Code memory docs](https://code.claude.com/docs/en/memory) ·
+[Software Engineering at Google, ch. 20 Static Analysis](https://abseil.io/resources/swe-book/html/ch20.html) ·
+[Are "Solved Issues" in SWE-bench Really Solved Correctly? (arXiv 2503.15223)](https://arxiv.org/abs/2503.15223) ·
+[ImpossibleBench (arXiv 2510.20270)](https://arxiv.org/abs/2510.20270)
+
+### 2026-10-27 — Review Where It Pays
+
+Every slice still gets a critic; its class now sizes what the critic reads and how many rounds it gets, and
+full suites run where they prove something. A first draft of this entry dropped the critic for mechanical and
+prose-only slices. It was reversed before merge: agent-read text is behaviour, and no test notices a wrong line.
+Anthropic's Claude Code postmortem (23.04.2026) is the case: a system-prompt instruction to reduce verbosity passed
+weeks of internal testing ("no regressions in the set of evaluations we ran"); a later evaluation "showed a 3%
+drop for both Opus 4.6 and 4.7".
+
+**Changed:**
+- **`/fleet-economics`**: every slice gets a fresh-context critic on the flagship tier or above; the builder's
+  re-read never counts. Mechanical: the diff and the brief, one round. Prose-only (text only people read): the diff
+  and the sources its claims cite. Standard: probes; agent-read text is read whole as a fresh agent would. Complex:
+  strongest, blind, up to two rounds. Agent-read text (skills, prompts, rule files) is classed by what it governs.
+  A second round only after a reproduced finding; findings need file, line and evidence. A new level A (the test
+  files that import or name a changed file) is the per-candidate run for standard work; the full suite per
+  candidate only for complex slices and the wiring, persistence and security rows; nothing further for wording;
+  eval scenarios for agent-read text where the repository has them; the whole line keeps one full run before any
+  pull request
+- **`/goal-loop`**: the same rules in its slice plan, judgment protocol, final run and fleet mode
+- **`/adversarial-review`**: the full three passes are mandatory for complex changes, a smaller change gets one
+  fresh-context pass; pin the candidate first; no accuracy figure claimed. Trap 5 follows it
+- **`/paranoia`**: an artifact proven unchanged by hash or commit keeps its last check; live state is always re-read
+- **`/proof`**: known-bad cases only in isolated fixtures; key uniqueness proven by count; the exact predecessor
+  backed up and restored once; a failed read aborts the write; read back the target
+- **`/scalpel`**: recon stops when the questions that can change the fix are answered
+- **`/shippable`**: a qualification boundary (implemented, tested, installed, merged, deployed and consumer-verified
+  kept apart); a surplus branch is diffed and merged only with authority; a broken consumer path sorts first
+- **`/unverified`**, **`/blueprint`**: unsourced time and yield claims removed; the blind critic's reading list no
+  longer contradicts the shared-files section
+- README: the cost of always-loaded rules is real; a closing block makes an omission visible, not its content true
 
 ### 2026-10-14 — No Gut Rules
 

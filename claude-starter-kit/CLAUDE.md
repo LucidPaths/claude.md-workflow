@@ -162,7 +162,7 @@ Never push without fetching first. Commit messages follow conventional style: `f
 
 **Decompose long or complex tasks, and re-ground at each step.** Instruction-following degrades with task complexity and conversation length — the rules you read at the start hold weakest exactly when the task is hardest. Break the work into subtasks and restate the constraints at each one rather than trusting them to survive a long session. (Source: Liu et al. 2023, AgentBench)
 
-**Don't use subagents/task tools for research.** Do research directly with Read/Grep/Glob. Subagents burn 5-10x more tokens for the same result. Only use subagents for truly independent parallel *write* tasks.
+**Subagents by task shape, not by habit.** A lookup at a known location: do it yourself with Read/Grep/Glob. Coupled work, where each step needs the last one's result (edit, run, edit; a feature and its tests): one agent. Delegate a side question whose reading you do not need to keep (the subagent returns the conclusion with file:line), and fan out when 2 or more questions are independent. Writes stay with one agent per file set. The cost is real: multi-agent runs "typically use 3-10x more tokens than single-agent approaches for equivalent tasks" (Anthropic, 23.01.2026), and they pay where the work splits; "most coding tasks involve fewer truly parallelizable tasks than research" (Anthropic, 13.06.2025). Models and sizes per `/fleet-economics`.
 
 ---
 

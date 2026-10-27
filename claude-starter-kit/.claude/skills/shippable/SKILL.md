@@ -48,8 +48,9 @@ for b in $(git branch -r | grep -v HEAD); do
 done
 ```
 
-If another branch has more files than the default (any surplus counts), your work is somewhere nobody will
-look. Merging costs minutes; being judged on three quarters of your project costs everything.
+If another branch has more files than the default (any surplus counts), diff the two: files that exist only
+off the default branch are work nobody will look at. Merging them needs the repository's merge authority;
+without it, the branch goes into the verdict as a finding, unmerged.
 
 **2. Understand.** Can they say what this is in thirty seconds? Open your README as a stranger. If it
 still says `create-next-app` or `# Project`, you have written a product and shipped an anonymous folder.
@@ -93,7 +94,7 @@ and "I watched it work without asking them".
 
 ## The cold-clone test
 
-The gates are the checklist. This is the actual test, and it takes fifteen minutes:
+The gates are the checklist. This is the actual test:
 
 1. Clone your repository into a **fresh empty directory** — not your working copy.
 2. Follow your own README **literally**. Type only what it says.
@@ -102,6 +103,14 @@ The gates are the checklist. This is the actual test, and it takes fifteen minut
 
 That list is your defect list, in priority order. Nothing else you do this week will improve how your work
 is received as much as fixing it.
+
+## Qualification boundary
+
+Keep **implemented**, **repository-tested**, **installed-host verified**, **merged**, **deployed** and
+**consumer-verified** apart in the verdict; each is a separate claim with its own evidence. A test or review
+result counts for the exact commit it ran on. A smoke suite or a stand-in proves its own path, not the live
+integration. When the runtime a claim needs is not available, report the blocker instead of a result. Never
+merge or deploy to complete this checklist.
 
 ## Closing block (required) — The verdict
 
@@ -112,7 +121,8 @@ COSTS    what they conclude about the work because of it
 FIX      the change, and roughly how many minutes
 ```
 
-Sort by minutes ascending. Most of this list will be under ten each, which is the point.
+Sort a broken consumer path first (the README's install or first run fails), then by minutes ascending.
+Most of this list will be under ten each, which is the point.
 
 ## One thing that is not about the code
 

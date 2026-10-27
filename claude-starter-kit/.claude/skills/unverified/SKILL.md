@@ -59,7 +59,7 @@ Pick a single field the system genuinely cannot know. Follow it, by hand, end to
 the screen still marked as missing. In most systems it dies somewhere in the middle, and everything
 downstream inherits a fact that was never true.
 
-Do this for three fields. It takes twenty minutes and it is the highest-yield review you can run.
+Do this for three fields, each reaching the screen by a different path.
 
 ## The naming test
 
