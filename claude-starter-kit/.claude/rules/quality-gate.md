@@ -14,7 +14,7 @@
 5. **Check the Principle Lattice.** Score your changes against all 5 principles in `docs/PRINCIPLE_LATTICE.md`. This is not decorative — enforce it actively on every change, or the principles become wallpaper. Ask yourself each one explicitly: Modular? Simple? Errors visible? Pattern fixed everywhere? Secrets safe?
 6. **No dead code.** If you added a function, something must call it (Coding Standard #3).
 7. **Check for regressions.** `git diff` and verify you didn't break existing contracts.
-8. **Stay in scope.** No unasked-for refactoring, no bonus features (Trap #4).
+8. **Stay in scope.** No unasked-for refactoring, no bonus features (Trap #1).
 
 ## Verification Language Rule
 

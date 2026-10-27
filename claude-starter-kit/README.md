@@ -29,18 +29,19 @@ On first session, the AI will explore your codebase and fill in the `[ADAPT]` se
 | `docs/GLOBAL_ROUTER_TEMPLATE.md` | Template | Thin CLAUDE.md router for projects with many docs/ files |
 | `.claude/settings.json` | Claude Code | Registers all lifecycle hooks |
 | `.claude/hooks/session-start.py` | Claude Code | Auto-injects git state, working memory, and next steps at session start |
-| `.claude/hooks/maintenance-check.py` | Claude Code | Blocks session end if code changed but docs/working state weren't updated |
+| `.claude/hooks/maintenance-check.py` | Claude Code | One-shot reminder to check docs and working state |
 | `.claude/hooks/pre-compact.py` | Claude Code | Snapshots working state before context compaction (session transcendence) |
 | `.claude/hooks/session-end.py` | Claude Code | Auto-persists working state on graceful session exit |
-| `.claude/hooks/precommit-doc-check.py` | Claude Code | Blocks commits where code is staged but no docs are |
+| `.claude/hooks/precommit-doc-check.py` | Claude Code | Code-only commit reminder with explicit acknowledgement |
 | `.claude/hooks/_state_utils.py` | Claude Code | Shared utilities for state management hooks |
 | `.claude/skills/<name>/SKILL.md` | Fixed | 11 invocable disciplines — see **The Skills** below |
 | `docs/research-then-implement.md` | Reference | Two-phase pattern: research, write a decision, then implement with fresh context |
 | `.claude/PR_GUIDELINES.md` | Fixed | Standardized PR description format and commit conventions |
 | `samples/` | Reference | Filled-in examples from real projects showing what adapted files look like |
-| `guards/install-guards.sh` | Fixed | Installs pre-push / pre-commit git hooks — hard blocks a model cannot talk its way past |
+| `guards/install-guards.sh` | Fixed | Installs pre-push / pre-commit accident guards; bypassable by shell users |
 | `.claude/protected-paths.txt` | Template | Path prefixes the pre-commit guard refuses (ships empty) |
 | `tests/test_hooks.py` | Fixed | Validates that hooks parse, emit the current schema, and that skills are registerable |
+| `tests/test_hook_behavior.py` | Fixed | Runs the hooks against disposable Git repositories: state retention, transcript shapes, commit classification, Stop-loop handling |
 | `docs/SKILL-STANDARD.md` | Reference | How a skill is written: three kinds of decision rule, banned vague terms, standalone defaults, the closing block |
 | `tests/skill_lint.py` | Fixed | Lints a skills folder against the standard; `--skills-dir` points it at your own skills |
 | `tests/test_skill_lint.py` | Fixed | Proves each lint check fires on a planted defect, and that the shipped skills pass |
@@ -84,7 +85,7 @@ exactly when they matter. Use `paths` for rules that genuinely only apply to par
 
 ### Hook Lifecycle Coverage
 
-The starter kit ships with 6 hooks covering the full session lifecycle: session-start, maintenance-check, pre-compact, session-end, precommit-doc-check, and shared utilities (_state_utils.py). Together these enable session transcendence — context survives both session boundaries and context compaction.
+The starter kit registers five events: SessionStart, Stop, PreCompact, SessionEnd and PreToolUse. `_state_utils.py` is a shared helper, not a registered hook. These scripts support continuity; installed-host behavior still requires qualification.
 
 ### Fixed vs Adaptive
 
@@ -104,7 +105,7 @@ The "Before Submitting Changes" section isn't a generic checklist — each rule 
 Eleven skills, each a way of not fooling yourself: `/pick-skills` (the discipline chosen on purpose, not guessed), `/adversarial-review` (overclaim in opposing directions, then adjudicate), `/proof` (the check that silently lied), `/rigor` (verified vs inferred vs assumed), `/paranoia` (one defect class per pass, to convergence), `/scalpel` (size the fix to the evidence), `/unverified` (where the "I don't know" died), `/shippable` (can a stranger run it), `/blueprint` (a plan reviewed only by its author is a wish list), `/goal-loop` (nothing is done without a pre-declared machine-checkable proof), `/fleet-economics` (the same proof run three times proves nothing new).
 
 ### Automatic Maintenance (Claude Code)
-Session hooks ensure docs stay current and working state is updated. The stop hook blocks if code changed but maintenance wasn't done. These require Claude Code — other tools get the standards but not the automation.
+Session hooks capture context and remind about maintenance; they do not verify documentation accuracy. Stop checks uncommitted files (not a session baseline), reminds once, and honors the host loop guard. These contracts target Claude Code; other hosts need adapters.
 
 ## The Skills
 
@@ -137,10 +138,9 @@ Every decision rule in a skill is DETERMINISTIC, a named DEFAULT, or an ASK to t
 needs another to work: a borrowed rule comes with a standalone default inline. The full rules are in
 `docs/SKILL-STANDARD.md`; `python tests/skill_lint.py` checks them.
 
-## Hard guards (optional, recommended)
+## Local accident guards (optional)
 
-Rules and hooks shape behaviour; they do not enforce it. For the things that must never happen,
-install git-level guards:
+Local Git hooks can prevent accidental prohibited pushes and commits on the normal path:
 
 ```bash
 bash guards/install-guards.sh            # protect main + master
@@ -151,7 +151,7 @@ bash guards/install-guards.sh main dev   # or name your own branches
 - **pre-commit** refuses commits touching prefixes listed in `.claude/protected-paths.txt`
   (ships empty — nothing is protected until you choose)
 
-Overrides are deliberate human acts, not model-emittable text:
+Overrides are explicit, but not human-only. An agent with shell access can set them too:
 
 ```bash
 ALLOW_PROTECTED_PUSH=1 git push ...
@@ -159,11 +159,13 @@ ALLOW_PROTECTED_PATHS=1 git commit ...
 ```
 
 Safe to re-run. A pre-existing hook this script did not install is reported and left untouched.
+Local hooks are also bypassable with `--no-verify` or filesystem edits. Use remote branch
+protection and separately controlled permissions for enforcement against that actor.
 
 ## Requirements
 
-- **Python 3** — Required for the session hooks (most systems have this)
-- **Git** — Required for session-start orientation and maintenance checks
+- **Python 3.11** — Tested by the offline suites and CI; hooks use only the standard library
+- **Git and Bash** — Required for Git checks, the configured command hooks and optional guards
 - **Claude Code** — Required for hooks to fire automatically. Standards in CLAUDE.md work with any tool that reads project instruction files
 
 ## Verifying Hooks
@@ -172,13 +174,54 @@ Run the hook test to make sure everything parses correctly:
 
 ```bash
 python3 tests/test_hooks.py                 # 45/45 expected
+python3 tests/test_hook_behavior.py -v      # hook behavior in disposable Git repositories
 python3 tests/skill_lint.py                 # RESULT PASS expected
-python3 -m unittest discover -s tests       # both, as unittest cases
+python3 -m unittest discover -s tests       # all of the above, as unittest cases
 ```
 
-The suite checks that hooks compile, that `session-start.py` emits the current output envelope,
-and that every skill is in a format Claude Code actually registers. The lint checks every skill
-against `docs/SKILL-STANDARD.md`, and its tests plant one defect per check to show each one fires.
+The smoke suite checks compilation, references, the SessionStart envelope and that every skill is in
+a format Claude Code actually registers. The behavior suite uses disposable Git repositories to
+exercise state retention, transcript shapes, commit classification/acknowledgement and Stop-loop
+handling. Neither suite runs an installed Claude session or measures model effectiveness. The lint
+checks every skill against `docs/SKILL-STANDARD.md`, and its tests plant one defect per check to show
+each one fires.
+
+### Hook contract and limits
+
+The implementation follows the [official hooks reference](https://code.claude.com/docs/en/hooks):
+PreToolUse uses `hookSpecificOutput` with `hookEventName`, `permissionDecision: "deny"` and
+`permissionDecisionReason`; silence leaves normal permissions unchanged. Stop uses top-level
+`decision: "block"`/`reason`, checks `stop_hook_active`, and reads `last_assistant_message`.
+Registered commands use the host's `CLAUDE_PROJECT_DIR` (quoted for spaces).
+
+- The doc reminder recognizes literal `git [-C dir] commit`, optionally after `cd dir &&`,
+  common message flags, amend and `-a`/`--all` tracked changes. For `-a`, it updates a temporary
+  copy of the index and compares the net candidate to HEAD (or the empty tree on unborn branches).
+  Canceling staged/worktree edits do not count. The real index is not staged or refreshed and no
+  commit is created; Git may run configured clean filters and write blobs while preparing the copy.
+  It never executes the supplied shell command. Aliases, wrappers, expansion, pathspec commits,
+  message files and compound mutation commands are not interpreted; review these manually.
+  It is not a shell security policy.
+- Test classification uses directory/name conventions, not `test`/`spec` substrings.
+  Markdown/reStructuredText and named text docs suppress the reminder; an unrelated `.txt`
+  does not. Staging a doc still does not prove relevance. To acknowledge a code-only commit,
+  add a message paragraph such as `Docs-Unnecessary: internal refactor; public behavior unchanged`.
+- State reads and writes prefer existing `docs/WORKING_STATE.md`, then root `WORKING_STATE.md`;
+  if neither exists, new state goes under `docs/`. Keep only one authoritative file.
+- Missing, unreadable or unsupported transcripts do not clear existing state. Flat records and
+  nested `message` records are supported; only sections with usable new context are refreshed.
+  Other sections (including custom ones and horizontal rules) remain intact. Level-two section
+  headings inside backtick/tilde fences are ignored; closers must use the same marker and at least
+  the opening length. An unclosed fence skips the update rather than appending inside an example.
+  Failed predecessor reads abort the write; replacement is atomic, but **not** a concurrent-writer lock.
+- Use one session writer per worktree. The shared compaction snapshot is not session-isolated;
+  crash recovery and concurrent-session behavior are not qualified by these tests.
+- Transcript excerpts and command fragments can be sensitive. State and hook-data are ignored
+  by default, not redacted. Inspect before deliberately sharing or force-adding them. Gitignore
+  does not untrack files already committed.
+
+Before adopting the hooks, exercise start → work → compact → resume → exit in the installed
+Claude version. The offline tests establish script behavior, not that lifecycle qualification.
 
 ## The Principle Lattice
 

@@ -2,7 +2,7 @@
 """
 Pre-Compaction Hook — Snapshot state before context compression
 
-PreCompact can ONLY do side effects (no additionalContext, no blocking).
+This hook uses PreCompact for side effects only (no decision output).
 This hook:
   1. Auto-updates working state ephemeral sections from transcript
   2. Saves a full snapshot to disk for post-compaction restore
@@ -24,7 +24,7 @@ from datetime import datetime
 
 # Import shared utilities from same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _state_utils import auto_update_state, STATE_PATH, HOOK_DATA_DIR
+from _state_utils import auto_update_state, get_state_path, HOOK_DATA_DIR
 
 
 SNAPSHOT_PATH = os.path.join(HOOK_DATA_DIR, 'pre-compact-snapshot.md')
@@ -87,9 +87,10 @@ def main():
         lines.append("")
 
     # Include the full (now freshly updated) working state in the snapshot
-    if os.path.exists(STATE_PATH):
+    state_path = get_state_path(project_root)
+    if os.path.exists(state_path):
         try:
-            with open(STATE_PATH, 'r', encoding='utf-8') as f:
+            with open(state_path, 'r', encoding='utf-8') as f:
                 state_content = f.read()
             lines.append("## Working State (auto-saved)")
             lines.append(state_content)

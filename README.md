@@ -122,12 +122,13 @@ bash guards/install-guards.sh main dev   # or name your own
 ```
 
 That installs a **pre-push** hook refusing pushes to protected branches and a **pre-commit** hook
-refusing commits that touch paths listed in `.claude/protected-paths.txt`. The overrides are
-environment variables a human types — `ALLOW_PROTECTED_PUSH=1`, `ALLOW_PROTECTED_PATHS=1` — not a
-phrase a model can emit mid-session, which is the whole point. Re-running is safe, and a pre-existing
-hook the script did not install is reported and left alone rather than clobbered.
+refusing commits that touch paths listed in `.claude/protected-paths.txt`. Explicit overrides are
+`ALLOW_PROTECTED_PUSH=1` and `ALLOW_PROTECTED_PATHS=1`. Any actor with shell access can set them,
+use `--no-verify`, or edit the hooks; these prevent accidents, not intentional circumvention.
+Re-running preserves foreign hooks rather than clobbering them.
 
-A rule in `rules/` is advice. A hook in `.git/hooks` is a wall.
+A rule is advice; a local hook is an accident guard. Use protected remote branches and permissions
+outside the actor's control when actual enforcement is required.
 
 ## What This Is
 
@@ -150,10 +151,10 @@ claude-starter-kit/
 │   │   └── quality-gate.md            # Pre-submit verification checklist
 │   ├── hooks/
 │   │   ├── session-start.py           # Auto-injects git state at session start
-│   │   ├── maintenance-check.py       # Blocks session end if docs not updated
+│   │   ├── maintenance-check.py       # One-shot reminder to check docs/state
 │   │   ├── pre-compact.py             # Snapshots state before context compaction
 │   │   ├── session-end.py             # Auto-persists working state on exit
-│   │   ├── precommit-doc-check.py     # Blocks commits missing doc updates
+│   │   ├── precommit-doc-check.py     # Code-only commit reminder with acknowledgement
 │   │   └── _state_utils.py            # Shared utilities for state hooks
 │   └── skills/                        # folder format - a flat .md never registers
 │       ├── pick-skills/SKILL.md
@@ -210,7 +211,7 @@ The adaptive design means the kit grows with your project instead of being stati
 
 ### 3. Automation (the hooks)
 
-Six lifecycle hooks registered in `.claude/settings.json`:
+Five lifecycle events registered in `.claude/settings.json`, plus one shared helper:
 
 **Session Start** (`session-start.py`):
 - Injects current branch, last 5 commits, uncommitted changes
@@ -219,9 +220,9 @@ Six lifecycle hooks registered in `.claude/settings.json`:
 - Claude starts every session oriented, not asking "what are we working on?"
 
 **Session Stop** (`maintenance-check.py`):
-- Detects if code files were modified during the session
-- If yes, **blocks session end** until documentation is confirmed up-to-date
-- Prevents documentation rot — the #1 cause of stale project context
+- Inspects uncommitted files, which may predate the session
+- Gives a one-shot maintenance reminder after a nontrivial transcript
+- Honors `stop_hook_active` and a standalone `No maintenance needed` line in the current assistant response; does not verify doc correctness
 
 **Pre-Compaction** (`pre-compact.py`):
 - Fires before Claude Code compresses context in long sessions
@@ -236,8 +237,8 @@ Six lifecycle hooks registered in `.claude/settings.json`:
 
 **Pre-Commit Doc Check** (`precommit-doc-check.py`):
 - Fires before `git commit` via PreToolUse hook
-- Blocks commits where code files are staged but no documentation is
-- Catches doc rot at commit time, not just session end
+- Denies recognized code-only commit commands with an actionable documentation reminder
+- Accepts an explicit `Docs-Unnecessary: <specific reason>` commit-message paragraph; presence of docs is a heuristic, not proof of relevance
 
 **Shared Utilities** (`_state_utils.py`):
 - Common functions for working state auto-maintenance
@@ -265,7 +266,7 @@ First session:
 Every session:
   → Orientation at start (branch, commits, changes, next steps)
   → Standards enforced during work (8 coding standards, 8 trap interrupts)
-  → Documentation check at end (blocks if code changed but docs didn't)
+  → One-shot documentation/state reminder at end
 
 Per task:
   → Copy TASK_CONTRACT_TEMPLATE.md, define acceptance criteria
@@ -280,8 +281,8 @@ The kit is **self-reinforcing**. Each component addresses a specific failure mod
 |-------------|-----------------|
 | Claude drifts from project context | `[ADAPT]` sections in CLAUDE.md that grow with the project |
 | Session starts cold, wastes turns exploring | session-start.py auto-injects git state |
-| Documentation rots, future sessions hallucinate | maintenance-check.py blocks session end until docs updated |
-| Scope creep ("while I'm here, I'll also...") | Trap #4 + `/scalpel` sizing the cut to the evidence |
+| Documentation rots, future sessions hallucinate | maintenance-check.py reminds once; relevance still needs review |
+| Scope creep ("while I'm here, I'll also...") | Trap #1 + `/scalpel` sizing the cut to the evidence |
 | Sycophantic code review ("this looks correct") | `/adversarial-review` exploits the bias against itself |
 | Context bloat from mixing research and coding | `docs/research-then-implement.md` separates the phases |
 | A passing check that could never have failed | `/proof` - fail-proof the checker before trusting it |
@@ -308,7 +309,7 @@ Mostly yes. The principles, coding standards, and traps are universal to any LLM
 - The Python hooks are plain scripts — any AI tool with lifecycle hooks could call them
 - The skills are markdown prompts — they work as system prompts for any model
 - The `[ADAPT]` pattern is transferable to any agent framework
-- Only `.claude/settings.json` is Claude Code-specific (hook registration format)
+- Hook stdin/stdout contracts, transcript shapes and registration are Claude Code-specific; other hosts need adapters and runtime qualification
 
 ## Parallel Multi-Session Architecture
 

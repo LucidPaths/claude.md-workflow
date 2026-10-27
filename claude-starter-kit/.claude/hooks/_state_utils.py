@@ -11,6 +11,7 @@ Project-agnostic — works with any repo. Python stdlib only.
 import json
 import os
 import re
+import tempfile
 from datetime import datetime
 
 
@@ -23,23 +24,16 @@ def get_project_root():
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# Working state file lives in docs/ relative to project root
-STATE_PATH = os.path.join(get_project_root(), 'docs', 'WORKING_STATE.md')
+def get_state_path(project_root=None):
+    """Use the same docs-first precedence for reads and writes."""
+    root = project_root or get_project_root()
+    paths = [os.path.join(root, 'docs', 'WORKING_STATE.md'),
+             os.path.join(root, 'WORKING_STATE.md')]
+    return next((path for path in paths if os.path.lexists(path)), paths[0])
+
 
 # Directory for hook data files (snapshots, etc.)
 HOOK_DATA_DIR = os.path.join(get_project_root(), '.claude', 'hook-data')
-
-# Sections that are AUTO-WRITTEN (overwritten by hooks)
-EPHEMERAL_SECTIONS = {'## Active Task', '## Conversation Context'}
-
-# Sections that are CURATED (never touched by hooks, only by Claude)
-CURATED_SECTIONS = [
-    '## Learnings',
-    '## Corrections',
-    '## Self-Improvement',
-    '## Deferred Ideas',
-    '## Codebase Insights',
-]
 
 
 def extract_transcript_context(transcript_path):
@@ -70,44 +64,39 @@ def extract_transcript_context(transcript_path):
             except json.JSONDecodeError:
                 continue
 
-            role = entry.get('role', '')
-            msg_type = entry.get('type', '')
-
-            # User messages
-            if role == 'human' or msg_type == 'human':
-                content = entry.get('content', '')
-                if isinstance(content, str) and content.strip():
-                    user_messages.append(content.strip()[-200:])
-                elif isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get('type') == 'text':
-                            text = block.get('text', '').strip()
-                            if text:
-                                user_messages.append(text[-200:])
-
-            # Tool calls
-            if msg_type == 'tool_use' or entry.get('type') == 'tool_use':
-                tool_name = entry.get('name', '')
-                tool_input = entry.get('input', {})
-                if isinstance(tool_input, dict):
-                    path = tool_input.get('file_path', '') or tool_input.get('path', '')
-                    command = tool_input.get('command', '')
-                    if path:
-                        tool_calls.append(f"{tool_name}: {os.path.basename(path)}")
-                    elif command:
-                        tool_calls.append(f"{tool_name}: {command[:80]}")
-
-            # Assistant text
-            if role == 'assistant' or msg_type == 'assistant':
-                content = entry.get('content', '')
-                if isinstance(content, str) and len(content) > 30:
-                    assistant_snippets.append(content[:200])
-                elif isinstance(content, list):
-                    for block in content:
-                        if isinstance(block, dict) and block.get('type') == 'text':
-                            text = block.get('text', '')
-                            if len(text) > 30:
-                                assistant_snippets.append(text[:200])
+            if not isinstance(entry, dict):
+                continue
+            message = entry.get('message', entry)
+            if not isinstance(message, dict):
+                continue
+            role = message.get('role') or entry.get('type') or entry.get('role')
+            content = message.get('content', '')
+            blocks = ([{'type': 'text', 'text': content}]
+                      if isinstance(content, str) else content)
+            if not isinstance(blocks, list):
+                continue
+            if entry.get('type') == 'tool_use':
+                blocks = [entry]
+            for block in blocks:
+                if not isinstance(block, dict):
+                    continue
+                text = block.get('text', '')
+                if block.get('type') == 'text' and isinstance(text, str):
+                    if role in ('human', 'user') and text.strip():
+                        user_messages.append(text.strip()[-200:])
+                    elif role == 'assistant' and len(text) > 30:
+                        assistant_snippets.append(text[:200])
+                if block.get('type') == 'tool_use':
+                    tool_input = block.get('input', {})
+                    if not isinstance(tool_input, dict):
+                        continue
+                    path = tool_input.get('file_path') or tool_input.get('path')
+                    command = tool_input.get('command')
+                    name = block.get('name', '')
+                    if isinstance(path, str) and path:
+                        tool_calls.append(f"{name}: {os.path.basename(path)}")
+                    elif isinstance(command, str) and command:
+                        tool_calls.append(f"{name}: {command[:80]}")
 
         return {
             'user_messages': user_messages[-5:],
@@ -116,19 +105,6 @@ def extract_transcript_context(transcript_path):
         }
     except Exception:
         return {'user_messages': [], 'tool_calls': [], 'assistant_snippets': []}
-
-
-def parse_curated_sections(state_content):
-    """Extract curated (accumulating) sections from working state file."""
-    sections = {}
-    for section_header in CURATED_SECTIONS:
-        pattern = rf'({re.escape(section_header)}\n.*?)(?=\n## |\n---\n|\Z)'
-        match = re.search(pattern, state_content, re.DOTALL)
-        if match:
-            text = match.group(1).strip()
-            if len(text) > len(section_header) + 2:  # has content beyond header
-                sections[section_header] = text
-    return sections
 
 
 def build_ephemeral_sections(context, trigger_reason="session activity"):
@@ -156,9 +132,6 @@ def build_ephemeral_sections(context, trigger_reason="session activity"):
 
     # Conversation Context
     context_lines = [
-        "",
-        "---",
-        "",
         "## Conversation Context",
         f"*Auto-captured at {timestamp}*",
         "",
@@ -174,53 +147,79 @@ def build_ephemeral_sections(context, trigger_reason="session activity"):
     return '\n'.join(active_lines), '\n'.join(context_lines)
 
 
+def split_state_sections(content):
+    """Split at level-two headings outside fenced code; refuse unclosed fences."""
+    boundaries = [0]
+    offset = 0
+    fence = None
+    for line in content.splitlines(keepends=True):
+        text = line.rstrip('\r\n')
+        marker = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', text)
+        if fence is not None:
+            if (marker and marker[1][0] == fence[0]
+                    and len(marker[1]) >= len(fence) and not marker[2].strip(' \t')):
+                fence = None
+        elif marker and (marker[1][0] == '~' or '`' not in marker[2]):
+            fence = marker[1]
+        elif text.startswith('## ') and offset:
+            boundaries.append(offset)
+        offset += len(line)
+    if fence is not None:
+        # Appending here would put new state inside an unfinished example.
+        return None
+    boundaries.append(len(content))
+    return [content[left:right] for left, right in zip(boundaries, boundaries[1:])]
+
+
 def auto_update_state(transcript_path, trigger_reason="session activity"):
-    """
-    Auto-update working state file:
-    - OVERWRITES ephemeral sections (Active Task, Conversation Context)
-    - PRESERVES curated sections (Learnings, Corrections, etc.)
+    """Replace only sections with usable new context; retain everything else.
+
+    Atomic replacement protects against partial writes, not concurrent editors.
+    Use one writer per working tree. A failed read must never become an overwrite.
     """
     context = extract_transcript_context(transcript_path)
-
-    # Read existing state file
-    existing_content = ""
-    if os.path.exists(STATE_PATH):
-        try:
-            with open(STATE_PATH, 'r', encoding='utf-8') as f:
-                existing_content = f.read()
-        except Exception:
-            pass
-
-    # Parse out curated sections (these are sacred — never auto-modified)
-    curated = parse_curated_sections(existing_content)
-
-    # Build new ephemeral sections
-    active_section, context_section = build_ephemeral_sections(context, trigger_reason)
-
-    # Assemble the full file
-    lines = [
-        "# Claude Working State",
-        f"Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        "",
-        active_section,
-        context_section,
-    ]
-
-    # Append all curated sections in order
-    for header in CURATED_SECTIONS:
-        if header in curated:
-            lines.append("")
-            lines.append("---")
-            lines.append("")
-            lines.append(curated[header])
-
-    lines.append("")
-
-    # Write
-    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
-    try:
-        with open(STATE_PATH, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(lines))
-        return True
-    except Exception:
+    if not any(context.values()):
         return False
+    path = get_state_path()
+    temporary = None
+    try:
+        if os.path.islink(path):
+            return False
+        try:
+            with open(path, encoding='utf-8', newline='') as f:
+                content = f.read()
+        except FileNotFoundError:
+            content = "# Claude Working State\n"
+        active, conversation = build_ephemeral_sections(context, trigger_reason)
+        replacements = {}
+        if context['user_messages'] or context['tool_calls']:
+            replacements['## Active Task'] = active
+        if context['assistant_snippets']:
+            replacements['## Conversation Context'] = conversation
+        # Only level-two headings delimit sections; horizontal rules are content.
+        parts = split_state_sections(content)
+        if parts is None:
+            return False
+        for index, part in enumerate(parts):
+            header = part.split('\n', 1)[0].rstrip()
+            if header in replacements:
+                parts[index] = replacements.pop(header).strip() + '\n\n'
+        content = ''.join(parts)
+        for section in replacements.values():
+            separator = '\n' if content.endswith('\n') else '\n\n'
+            content += separator + section.strip() + '\n'
+        directory = os.path.dirname(path)
+        os.makedirs(directory, exist_ok=True)
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='', dir=directory,
+                                         prefix='.working-state-', delete=False) as f:
+            temporary = f.name
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+        return True
+    except (OSError, UnicodeError):
+        return False
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.unlink(temporary)

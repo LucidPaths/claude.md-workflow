@@ -8,8 +8,7 @@ the AI to:
 2. Commit if there are many uncommitted files
 3. Update the working state file for next session
 
-The stop hook makes documentation maintenance automatic rather than
-discipline-dependent. Without it, docs drift.
+This is a one-shot reminder, not verification that documentation is current.
 
 Adapted from https://github.com/vincitamore/claude-org-template
 Original author: vincitamore (MIT License)
@@ -107,6 +106,13 @@ def main():
     except Exception:
         sys.exit(0)
 
+    if not isinstance(data, dict) or data.get('stop_hook_active'):
+        return  # Do not keep Claude in a Stop-hook loop.
+    # Only the current assistant response can acknowledge this reminder.
+    message = data.get('last_assistant_message', '')
+    if isinstance(message, str) and 'No maintenance needed' in message.splitlines():
+        return
+
     # Check transcript length — skip trivial sessions
     transcript_path = data.get("transcript_path")
     if not transcript_path or not os.path.exists(transcript_path):
@@ -120,11 +126,6 @@ def main():
         sys.exit(0)
 
     if line_count < TRIVIAL_SESSION_THRESHOLD:
-        sys.exit(0)
-
-    # Check if already stated "No maintenance needed"
-    recent = content[-2000:] if len(content) > 2000 else content
-    if "No maintenance needed" in recent:
         sys.exit(0)
 
     # Check for code changes
@@ -159,7 +160,7 @@ def main():
         if len(code_files) > 10:
             file_list += f"\n- ... and {len(code_files) - 10} more"
 
-        parts.append(f"Code files modified this session:\n{file_list}\n")
+        parts.append(f"Uncommitted code files (may predate this session):\n{file_list}\n")
         parts.append(
             "Before stopping, check if any documentation needs updating:\n\n"
             "| If this changed...       | Update...                          |\n"
