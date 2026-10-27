@@ -9,8 +9,8 @@
 
 1. **Test the production path.** Tests must exercise the actual code flow, not a synthetic setup.
 2. **Trace the full data flow.** If A triggers B triggers C, verify A→C end-to-end.
-3. **Run the full test suite.** Test count must not decrease vs. previous runs.
-4. **Grep for the pattern.** Every new pattern gets a codebase-wide search (Coding Standard #4).
+3. **Run the full test suite once before submitting**; while working, the tests that import or name the changed files. The test count drops only with every removed or disabled test named in the PR with its reason; an unnamed drop fails the gate. Never delete, skip or loosen a failing test to get green; rerun it once on the base commit, and report a failure there as pre-existing.
+4. **Find the siblings.** Every fix gets a codebase-wide search by meaning, not only by text (Coding Standard #4).
 5. **Check the Principle Lattice.** Score your changes against all 5 principles in `docs/PRINCIPLE_LATTICE.md`. This is not decorative — enforce it actively on every change, or the principles become wallpaper. Ask yourself each one explicitly: Modular? Simple? Errors visible? Pattern fixed everywhere? Secrets safe?
 6. **No dead code.** If you added a function, something must call it (Coding Standard #3).
 7. **Check for regressions.** `git diff` and verify you didn't break existing contracts.
@@ -42,14 +42,22 @@ Skip any step = the claim is unverified.
 When checking if something works, these are in order of trustworthiness:
 
 ```
-1. Automated test passes (highest confidence)
-2. Manual trace through the actual code path
-3. Running it and observing the output
-4. Reading the code and reasoning about it
-5. "It looks correct to me" (lowest — almost worthless)
+1. A check shown to fail without the change and pass with it, both outputs quoted (highest)
+2. The real entry point run on a concrete input, output observed (user-visible behaviour)
+3. An automated test passes that exercises the changed path and was not edited in this task
+4. Manual trace through the actual code path, with file:line
+5. Reading the code and reasoning about it
+6. "It looks correct to me", or any claim without quoted output (no evidence)
 ```
 
-Never stop at level 5. At minimum, reach level 2.
+A check counts no higher than its weakest property: it reached the claim's target, it could fail,
+and nobody edited it in the same task to make it pass. A passing test against the wrong target, an
+empty population, a skipped or filtered run, or a test edited to pass is no result at all. For a
+claim about an internal library, levels 2 and 3 are equal. Never stop at level 6; at minimum reach
+level 4, and a bug fix or behaviour change reaches level 1 or 2. Why: a passing test is not proof —
+29.6% of SWE-bench patches that passed the tests behaved differently from the developer's fix
+("Are 'Solved Issues' in SWE-bench Really Solved Correctly?", 2025), and an agent with access to the
+tests "may delete failing tests rather than fix the underlying bug" (ImpossibleBench, 2025).
 
 Relocated here from the retired `structured-reasoning` skill. It ranks *evidence*;
 the Verification Language Rule above governs *claims*. Use them together.

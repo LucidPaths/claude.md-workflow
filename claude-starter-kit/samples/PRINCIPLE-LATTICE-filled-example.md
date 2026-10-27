@@ -100,7 +100,7 @@ An error message that says "something went wrong" is itself a bug. Every error m
 
 > *Cure the root cause. Don't treat symptoms.*
 
-When you find a bug, the bug is never alone. The same mistake exists in 3-5 other places. Search for the pattern. Fix every instance.
+When you find a bug, find the mechanism that made it, then every sibling. Fix them all, and make a recurring class impossible.
 
 **Instantiations:**
 - `.trim()` TypeError: found 3 vulnerable call sites, fixed all 3 (not just the one that crashed)
