@@ -26,7 +26,7 @@ any model, with or without the rest of the kit.
 
 | Skill | Use it when |
 |-------|-------------|
-| `/adversarial-review` | Before merging a diff. Two passes that overclaim in *opposite* directions, then adjudication. The intersection of "the bug hunter couldn't miss it" and "the disprover couldn't kill it" is remarkably accurate. |
+| `/adversarial-review` | Before merging a diff. Two passes that overclaim in *opposite* directions, then adjudication. A finding survives only with its triggering input; no accuracy figure is claimed for the method. |
 | `/shippable` | Before submitting, demoing or handing over. There is the work you did and the work that *arrives* — the gap is invisible to exactly one person: you. |
 
 **Then these four, as the situation calls for them.**
@@ -43,10 +43,10 @@ want that.
 
 | Skill | Use it when |
 |-------|-------------|
-| `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree. |
+| `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree, as far as its dry-proof reaches. |
 | `/blueprint` | Before a build that spans several steps, owners or contracts. Facts before design, design before code, refutation before approval: a fact inventory, locked design principles, a gap ledger whose every proof has a negative control, and a blind critic who never sees the orchestrator's reasoning. A plan reviewed only by its author is a wish list. |
 | `/goal-loop` | Closing a set of gaps end to end with subagents. Every gap declares its terminating proof *before* work starts; "the agent said so" never counts. |
-| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, never puts a critic below the flagship tier, and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
+| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, puts a critic only where the slice left something to judge (never below the flagship tier when it runs), and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
 
 ### Why folder format matters
 
@@ -81,9 +81,10 @@ including this one.
 
 **Instruction adherence decays, and more prose makes it worse.**
 
-Two arguments get conflated here and only one of them still matters. The **capacity** argument — long
-instructions eat your context budget — is largely dead. Against a million-token window a 16KB
-instruction set is a rounding error. **Do not trim your rules to save tokens.**
+Two arguments get conflated here. The **capacity** argument — long instructions crowd out the work —
+is weak against a million-token window. The **cost** argument is not: an always-loaded rule is paid on
+every turn of every session, so keep the rules that decide something and cut duplication and
+contradiction. Neither is the reason this kit is built the way it is.
 
 The argument that survives is **structural**, which is why it is worth building on: it does not
 depend on how well any particular model follows instructions, so it does not expire when the models
@@ -105,7 +106,7 @@ as strongly**, and another paragraph telling the model to try harder buys nothin
 What works is making non-compliance **visible in the output**. Not "verify your claims," but
 *"end with a table of every claim and the source you read for it."* An instruction the model can
 satisfy by asserting it complied is not enforcement. An instruction that requires a filled-in
-artifact is.
+artifact makes an omission visible; what the artifact says still needs checking.
 
 Every skill here ends with a required closing block for exactly this reason - `/proof` must print
 its invariant, population, command, fail-proof and what it merely trusted; `/scalpel` must print
@@ -417,6 +418,31 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 - **Claude Code** — the CLI tool this kit is designed for
 
 ## Changelog
+
+### 2026-10-27 — Review Where It Pays
+
+Critics and full suites now run where a slice leaves something to judge, not on every slice. A rewrite of
+skill text wrapped in census workers, batches, a lint and a planned critic round showed the cost of the old
+rule: review on work whose brief had already fixed every edit.
+
+**Changed:**
+- **`/fleet-economics`**: no critic on a mechanical or a prose-only slice (prose-only: every changed file is
+  documentation, or every hunk a comment or catalogue string); a critic that runs stays on the flagship tier or
+  above. A new level A (the test files that import or name a changed file) is the per-candidate run for standard
+  work; the full suite per candidate only for complex slices and the wiring, persistence and security rows; nothing
+  further for wording; the whole line keeps one full run before any pull request
+- **`/goal-loop`**: the same rules in its slice plan, judgment protocol, final run and fleet mode
+- **`/adversarial-review`**: not for prose-only or fully specified mechanical edits; pin the candidate first; no
+  accuracy figure claimed. Trap 5 follows it
+- **`/paranoia`**: an artifact proven unchanged by hash or commit keeps its last check; live state is always re-read
+- **`/proof`**: known-bad cases only in isolated fixtures; key uniqueness proven by count; the exact predecessor
+  backed up and restored once; a failed read aborts the write; read back the target
+- **`/scalpel`**: recon stops when the questions that can change the fix are answered
+- **`/shippable`**: a qualification boundary (implemented, tested, installed, merged, deployed and consumer-verified
+  kept apart); a surplus branch is diffed and merged only with authority; a broken consumer path sorts first
+- **`/unverified`**, **`/blueprint`**: unsourced time and yield claims removed; the blind critic's reading list no
+  longer contradicts the shared-files section
+- README: the cost of always-loaded rules is real; a closing block makes an omission visible, not its content true
 
 ### 2026-10-14 — No Gut Rules
 

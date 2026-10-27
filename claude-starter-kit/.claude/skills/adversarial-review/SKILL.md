@@ -1,17 +1,17 @@
 ---
 name: adversarial-review
-description: Three-pass adversarial verification that finds real bugs in a change before merge — an overclaiming bug-hunt, an overclaiming disproof, then adjudication. Use when the user runs /adversarial-review or asks to adversarially review, stress-test, or prove the correctness of a diff, function, smart contract, or PR before merging. Mandatory before merging smart-contract / fund-release changes.
+description: Three-pass adversarial verification that finds real bugs in a change before merge — an overclaiming bug-hunt, an overclaiming disproof, then adjudication. Use when the user runs /adversarial-review or asks to adversarially review, stress-test, or prove the correctness of a diff, function, smart contract, or PR before merging. Mandatory before merging smart-contract / fund-release changes. Not for a prose-only change (documentation, comments, catalogue strings) or a mechanical edit whose brief fixed every line and named its guarding test: a diff read and that test cover those.
 ---
 
 # Adversarial Review — Three-Pass Verification
 
-Exploit sycophancy bias against itself to find *real* bugs. Models find what they think you want, so run two opposing passes that each overclaim in opposite directions, then adjudicate. The intersection of "Bug Hunter couldn't miss it" and "Disprover couldn't kill it" is remarkably accurate.
+Exploit sycophancy bias against itself to find *real* bugs. Models find what they think you want, so run two opposing passes that each overclaim in opposite directions, then adjudicate. Opposing passes expose assumptions a single pass keeps; surviving the disproof is not confirmation — a finding counts when it carries its triggering input.
 
 ## Before you start — ground the review
 
 Do this first, every time. Skipping it is how reviews miss defects the diff itself shows.
 
-1. **Read the actual code.** Pull the real `git diff`, open the changed files, read the function signatures and callers. Never review from memory, from the PR description, or from how similar code "usually" looks.
+1. **Pin the candidate, then read the actual code.** Record the base and head commit and any uncommitted changes, and review that exact diff; an edit made after the review starts invalidates the findings and test results on the files it touches. Pull the real `git diff`, open the changed files, read the function signatures and callers. Never review from memory, from the PR description, or from how similar code "usually" looks.
 2. **Define "correct" for *this* change.** State the concrete success conditions and the invariants it must not break — not generic ones. (e.g. "90/10 split stays exact," "no state transition skips Verified," "no revert path leaves funds locked.")
 3. **List the high-risk surfaces it touches:** money / fund release, access control, state machines, external calls & reentrancy, integer math / overflow, error and revert paths, concurrency, auth flows, anything refactored since the repository's last release tag (`git log <tag>..HEAD -- <file>`; with no tag, the branch's own commits).
 4. **Hunt the structural defects tests rarely catch:** a box boundary crossed (core importing an adapter, an inbound adapter reaching the composition root), a second place that wires the same dependency, a second source of truth for one list or definition, a contract changed without its version step; and on every error path: a failure returned as an empty result ("none" where the read failed), a silent fallback or default (`/unverified`), an error that does not say what happened, why, and what to do. Standalone default for the fallback hunt: search the diff for `||`, `??`, `catch`, default values and demo or mock modes, and on each error path check that a failed read yields an error, never an empty or plausible value. If `/unverified` is installed, it replaces this default.

@@ -33,9 +33,11 @@ Understand before designing. Read the LIVE system, not your memory of it:
   INSIDE something that already exists before designing anything new.
 - **Standing laws**: postmortems, forbidden operations, conventions of the repo/host you
   are about to touch. A fix that violates a paid-for law is a regression.
+- **Stop condition**: before reading, write down the questions whose answers can change
+  the fix; the recon ends when each has its answer. Reading past that is spend, not recon.
 
-Why: recon spend is always recovered - it is what makes the small fix safe. Artifact
-spend is not. If a big design gets killed later, the recon it triggered was still the
+Why: recon spend is recovered when it answers one of those questions - it is what makes
+the small fix safe. Artifact spend is not. If a big design gets killed later, the recon it triggered was still the
 value.
 
 ## Phase 2 - The cut

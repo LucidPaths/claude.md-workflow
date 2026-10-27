@@ -15,8 +15,11 @@ the one level where it proves something.
 
 1. **Cost per finished slice, not per request.** A cheap model that needs three loop-backs costs more than a stronger
    one that needs none. Route by risk, then look at the rounds each slice actually took.
-2. **Judgment is never economised.** Critics, the advisor, the planner and the orchestrator run on the strongest models
-   available. The savings come from builders on fully specified work and from not re-running proof that already ran.
+2. **Review where the slice leaves something to judge; on the strongest tier when it runs.** A mechanical or prose-only
+   slice gets no critic: its brief fixed every edit, and the scripted gate, the guarding test and its negative control
+   prove it. A critic that runs, and the advisor, the planner and the orchestrator, run on the flagship tier or above,
+   because a weaker critic misses what a stronger one refutes. The savings come from builders on fully specified work,
+   from no critic where nothing was left to judge, and from not re-running proof that already ran.
 3. **The cheapest level that can prove the gap; everything wider once.** A check runs at a level because it proves
    something there. A wider run repeated per edit proves nothing new.
 4. **Facts at run time.** Which models exist, what they cost and how they rank change faster than any skill. Discover
@@ -38,6 +41,9 @@ class, or split the slice so its mechanical part can go down a tier.
 | **Mechanical** | the brief fixes every edit; the guarding test is named in advance; no design choice is left; one module; no contract, schema, persistence, security or guardrail change | moving strings into a catalogue; adding declared parameters copied from a source definition; register or changelog rows; fixtures; doc updates; tests written from a given assertion list; enumerations, searches, verbatim quote extraction |
 | **Standard** | logic inside one module; reads an existing contract; the design is locked but the brief leaves edge cases or error paths to the builder | an adapter for a new endpoint; detecting what a dependency serves; a config-driven behaviour change; a new tool over an existing read |
 | **Complex** | crosses modules; changes a contract or schema version, a guardrail, scope or permissions, persistence, or how components are wired together; open micro-decisions remain; or a wrong result would be silent because no existing test would notice | conversation state with verification; consolidating composition; a permission change; a data migration |
+
+**Prose-only** is a mark on top of the class, read from the diff: every changed file is documentation (`.md`, `.rst`,
+`.txt`) or every changed hunk is a comment or a catalogue string. It decides the critic (§2.1) and the test level (§3.2).
 
 ---
 
@@ -64,7 +70,8 @@ available model still does all judging.
 | Builder, mechanical | fast | highest | only with a self-contained brief and the guarding test named; at the highest effort the fast tier is still cheap, and it saves loop-backs |
 | Builder, standard | balanced | default | |
 | Builder, complex | flagship | default | |
-| Critic, mechanical and standard slices | flagship | default | never below flagship: critique is judgment |
+| Critic, mechanical and prose-only slices | none | | the scripted gate, the guarding test and its negative control are the proof; a critic runs only when the user asks for one |
+| Critic, standard slices | flagship | default | never below flagship: critique is judgment |
 | Critic, complex slices and the plan | strongest, blind | default | reads requirements, the artifact and the code; never the orchestrator's notes |
 | Reading workers (inventories) | a script first, wherever a regex or a parser can do the extraction; fast for extraction by an explicit rule (enumerations, verbatim quotes, reformatting); balanced for reading that classifies or judges | highest for fast | the manager spot-checks every load-bearing claim |
 
@@ -75,8 +82,8 @@ available model still does all judging.
   does the job instead. Every verdict (is this line a rule, is this a defect, which kind, which class) comes from the
   balanced tier or above. A fast-tier output that carries a verdict anyway is used for its extractions only, after the
   manager's spot-check.
-- **Critic rounds:** mechanical one round, diff and brief only; standard one round with probes; complex up to two. A
-  further round only on a confirmed finding.
+- **Critic rounds:** mechanical and prose-only none, unless the user asks for one; standard one round with probes;
+  complex up to two. A further round only on a confirmed finding.
 - **Escalate, do not repeat:** two failed rounds at one tier → re-dispatch the slice one tier up with the reports,
   instead of a third round.
 - **Agent lifetime.** Precondition: every agent writes its deliverable to files as it goes, so retiring it loses
@@ -107,6 +114,7 @@ repository actually has, with their commands, into the job's protocol.
 |---|---|
 | **S** static | schema validation, type check, lint, reference checks |
 | **U** unit | one unit, no I/O |
+| **A** affected | the test files that import or name a changed file (search the tests for its path or module name), plus S |
 | **C** contract | a boundary (port, adapter, route, schema) with stand-ins for its neighbours |
 | **N** system end-to-end with stand-ins | the running service through its real entry point, external systems replayed |
 | **F** full suite | everything above, as the repository's own check command runs it |
@@ -115,30 +123,35 @@ repository actually has, with their commands, into the job's protocol.
 | **M** live external | a real model or service: real cost, real variance |
 
 Example (a Node service): S = `npm run validate`, `npm run typecheck`; U, C, N = `test/unit`, `test/contract`,
-`test/e2e`, all inside `npm test`; F = `npm run check`; CI = the merge-request pipeline; B = a Playwright set through
+`test/e2e`, all inside `npm test`; A = the test files `grep -rl <module> test/` lists; F = `npm run check`; CI = the merge-request pipeline; B = a Playwright set through
 the host app; M = opt-in live tests with a real key.
 
 ### 3.2 Change type → level
 
 | Change | While working (builder) | Once per slice candidate | At the release candidate |
 |---|---|---|---|
-| Wording, catalogue string, docs | U (string or snapshot) + S | F once | nothing: never B or M for wording |
-| Validation or verification rule | U per accepted form, each with a negative pin (the same form, not given, stays refused) | F once | M only if a prompt changed with it |
-| Prompt (new prompt version) | U (assembly and version) + C with a stand-in model | F once | M: one recorded sample of `DEFAULT live_sample = 5` cases |
-| Adapter, external interface, detecting what a dependency serves | C with a recorded stand-in of the dependency | F once | live checks once, against the version that will run |
-| Conversation or session flow, reply contract, anything a UI renders | C + N (multi-turn through the real entry point) | F once | B once after deploy, plus one manual check |
+| Wording, catalogue string, docs | U (string or snapshot) + S | nothing further | nothing: never B or M for wording |
+| Validation or verification rule | U per accepted form, each with a negative pin (the same form, not given, stays refused) | A once | M only if a prompt changed with it |
+| Prompt (new prompt version) | U (assembly and version) + C with a stand-in model | A once | M: one recorded sample of `DEFAULT live_sample = 5` cases |
+| Adapter, external interface, detecting what a dependency serves | C with a recorded stand-in of the dependency | A once | live checks once, against the version that will run |
+| Conversation or session flow, reply contract, anything a UI renders | C + N (multi-turn through the real entry point) | A once | B once after deploy, plus one manual check |
 | Wiring, architecture rules, cross-module refactor | C + an architecture test | F once (wide blast radius) | nothing extra |
 | Persistence, schema version | C + compatibility (an old record still reads) | F once | nothing extra |
 | Security, scope, permissions | C with the refused paths as negative cases | F once | B if the UI exposes it |
 
+A slice classified complex (§1) runs F once per candidate whatever its row says. A repository rule that demands more
+(its contributing file, its instructions file) overrides this table.
+
 ### 3.3 Who runs what
 
-- **Builder:** the narrow levels while working; F once on its clean committed head, with a log whose first line names
-  that head; negative controls only on the test files that guard the fix. In fleet mode the slice manager runs this one
-  F on the builder's head instead, and the builder does not.
+- **Builder:** the narrow levels while working; the candidate level of §3.2 (A, or F for a complex slice) once on its
+  clean committed head, with a log whose first line names that head; negative controls only on the test files that
+  guard the fix. In fleet mode the slice manager runs this candidate run on the builder's head instead, and the builder
+  does not.
 - **Orchestrator, per slice:** the scripted gate only — the gap's programmatic proof, its negative control, commit
-  identity, line endings, nothing pushed — plus the one F log for the exact head. Not F again.
-- **Integration line:** F once after the last slice; CI at publication; B and M at the release candidate, only for the
+  identity, line endings, nothing pushed — plus the one candidate log for the exact head. Not again.
+- **Integration line:** F once after the last slice, before any pull request (a line of one slice whose candidate run
+  was already F on the same head reuses that log); CI at publication; B and M at the release candidate, only for the
   change types in 3.2 that call for them.
 - **A skipped level is a decision, not an omission:** the plan names it ("B not run: wording only"), so the judge and the
   user can see it.
@@ -166,7 +179,8 @@ the host app; M = opt-in live tests with a real key.
 | Fast-tier census workers were briefed to decide which lines were rules; every verdict would have had to be made again | §2.1: the fast tier never classifies, judges or decides |
 | A benchmark sweep emptied the shared budget of the user's running sessions | principle 5 |
 | Browser end-to-end planned for a reworded string | §3.2, first row |
-| Critics placed on a mid tier "to save tokens", missing what a stronger model would have refuted | §2.1: critics never below flagship |
+| Critics placed on a mid tier "to save tokens", missing what a stronger model would have refuted | §2.1: a critic that runs is never below flagship |
+| A rewrite of skill text was wrapped in census workers, batches, a new lint and a planned critic round; the user called it a circus | §2.1: no critic on prose-only or mechanical slices; §3.2: no full suite for wording |
 
 ---
 
@@ -174,7 +188,7 @@ the host app; M = opt-in live tests with a real key.
 
 ```
 BENCH     <models available, by tier>
-LEVELS    <S/U/C/N/F/CI/B/M with this repository's commands>
-SLICE     <name>  class <M|S|C>  builder <model, effort>  critic <model, rounds>  proof <levels while working / at RC>  not run <level: reason>
+LEVELS    <S/U/A/C/N/F/CI/B/M with this repository's commands>
+SLICE     <name>  class <M|S|C> [prose-only]  builder <model, effort>  critic <model, rounds | none: mechanical or prose-only>  proof <levels while working / per candidate / at RC>  not run <level: reason>
           ...
 ```
