@@ -15,11 +15,11 @@ the one level where it proves something.
 
 1. **Cost per finished slice, not per request.** A cheap model that needs three loop-backs costs more than a stronger
    one that needs none. Route by risk, then look at the rounds each slice actually took.
-2. **Review where the slice leaves something to judge; on the strongest tier when it runs.** A mechanical or prose-only
-   slice gets no critic: its brief fixed every edit, and the scripted gate, the guarding test and its negative control
-   prove it. A critic that runs, and the advisor, the planner and the orchestrator, run on the flagship tier or above,
-   because a weaker critic misses what a stronger one refutes. The savings come from builders on fully specified work,
-   from no critic where nothing was left to judge, and from not re-running proof that already ran.
+2. **Every slice gets an independent critic; its class sizes it.** The builder's own re-read is never the review. A
+   critic runs in a fresh context (never a fork of the builder) on the flagship tier or above, because a weaker critic
+   misses what a stronger one refutes; the advisor, the planner and the orchestrator run there too. The class sets what
+   the critic reads and how many rounds it gets (§2.1). The savings come from builders on fully specified work, from
+   critic inputs cut to what the class needs and capped rounds, and from not re-running proof that already ran.
 3. **The cheapest level that can prove the gap; everything wider once.** A check runs at a level because it proves
    something there. A wider run repeated per edit proves nothing new.
 4. **Facts at run time.** Which models exist, what they cost and how they rank change faster than any skill. Discover
@@ -42,8 +42,18 @@ class, or split the slice so its mechanical part can go down a tier.
 | **Standard** | logic inside one module; reads an existing contract; the design is locked but the brief leaves edge cases or error paths to the builder | an adapter for a new endpoint; detecting what a dependency serves; a config-driven behaviour change; a new tool over an existing read |
 | **Complex** | crosses modules; changes a contract or schema version, a guardrail, scope or permissions, persistence, or how components are wired together; open micro-decisions remain; or a wrong result would be silent because no existing test would notice | conversation state with verification; consolidating composition; a permission change; a data migration |
 
-**Prose-only** is a mark on top of the class, read from the diff: every changed file is documentation (`.md`, `.rst`,
-`.txt`) or every changed hunk is a comment or a catalogue string. It decides the critic (§2.1) and the test level (§3.2).
+**Agent-read text** (skills, prompts, instruction and rule files, tool descriptions, PRDs) is behaviour: an agent acts
+on every line, and no test notices a wrong one. Class it by what it governs: complex when it changes a rule on a
+guardrail, a permission, a merge, a deploy, an external write or a deletion; mechanical when no word of an imperative,
+a condition, a number or a list item changes (typos, whitespace, links); standard otherwise.
+
+**Prose-only** is the mark for text only people read, read from the diff: every changed file is human documentation (a
+README, a changelog) or every changed hunk is a comment or a catalogue string. It sets the critic's input (§2.1) and the
+test level (§3.2).
+
+Origin: a one-line system-prompt change that capped text between tool calls passed weeks of internal testing ("no
+regressions in the set of evaluations we ran") and then showed "a 3% drop" on a broader evaluation; Anthropic now runs
+"a broad suite of per-model evals for every system prompt change" (Claude Code postmortem, 23.04.2026).
 
 ---
 
@@ -70,8 +80,9 @@ available model still does all judging.
 | Builder, mechanical | fast | highest | only with a self-contained brief and the guarding test named; at the highest effort the fast tier is still cheap, and it saves loop-backs |
 | Builder, standard | balanced | default | |
 | Builder, complex | flagship | default | |
-| Critic, mechanical and prose-only slices | none | | the scripted gate, the guarding test and its negative control are the proof; a critic runs only when the user asks for one |
-| Critic, standard slices | flagship | default | never below flagship: critique is judgment |
+| Critic, mechanical slices | flagship, fresh context | default | reads the diff and the brief only, no probes: did the builder do exactly what the brief fixed, and nothing else? |
+| Critic, prose-only slices | flagship, fresh context | default | reads the diff and the sources its claims cite: every number, name and claim checked against its source |
+| Critic, standard slices | flagship, fresh context | default | reads the diff and the spec and runs probes; for agent-read text it reads the changed file whole as a fresh agent would: contradictions with neighbouring rules, steps it cannot follow, references that do not resolve |
 | Critic, complex slices and the plan | strongest, blind | default | reads requirements, the artifact and the code; never the orchestrator's notes |
 | Reading workers (inventories) | a script first, wherever a regex or a parser can do the extraction; fast for extraction by an explicit rule (enumerations, verbatim quotes, reformatting); balanced for reading that classifies or judges | highest for fast | the manager spot-checks every load-bearing claim |
 
@@ -82,8 +93,13 @@ available model still does all judging.
   does the job instead. Every verdict (is this line a rule, is this a defect, which kind, which class) comes from the
   balanced tier or above. A fast-tier output that carries a verdict anyway is used for its extractions only, after the
   manager's spot-check.
-- **Critic rounds:** mechanical and prose-only none, unless the user asks for one; standard one round with probes;
-  complex up to two. A further round only on a confirmed finding.
+- **Critic rounds:** mechanical, prose-only and standard one round; complex up to two. A further round runs only when
+  the last one had a reproduced finding and its fix touched more than the lines that finding cited.
+- **A finding counts with its evidence:** file and line, plus the input or reading that shows the defect. A finding
+  without them goes back to the critic once and is dropped if it comes back without them. The judge verifies every
+  finding before acting on it; critics also report defects that are not there.
+- **Critic model:** a model other than the builder's when the bench has one; on the same model, the critic runs in a
+  fresh context and its report says "same model".
 - **Escalate, do not repeat:** two failed rounds at one tier → re-dispatch the slice one tier up with the reports,
   instead of a third round.
 - **Agent lifetime.** Precondition: every agent writes its deliverable to files as it goes, so retiring it loses
@@ -131,6 +147,7 @@ the host app; M = opt-in live tests with a real key.
 | Change | While working (builder) | Once per slice candidate | At the release candidate |
 |---|---|---|---|
 | Wording, catalogue string, docs | U (string or snapshot) + S | nothing further | nothing: never B or M for wording |
+| Agent-read text (skill, prompt, instruction or rule file, tool description) | S (the repository's lint for these files) | the eval scenarios that exercise the changed rules, where the repository has them; nothing further otherwise | M only for a prompt a product ships (the Prompt row) |
 | Validation or verification rule | U per accepted form, each with a negative pin (the same form, not given, stays refused) | A once | M only if a prompt changed with it |
 | Prompt (new prompt version) | U (assembly and version) + C with a stand-in model | A once | M: one recorded sample of `DEFAULT live_sample = 5` cases |
 | Adapter, external interface, detecting what a dependency serves | C with a recorded stand-in of the dependency | A once | live checks once, against the version that will run |
@@ -180,7 +197,8 @@ A slice classified complex (§1) runs F once per candidate whatever its row says
 | A benchmark sweep emptied the shared budget of the user's running sessions | principle 5 |
 | Browser end-to-end planned for a reworded string | §3.2, first row |
 | Critics placed on a mid tier "to save tokens", missing what a stronger model would have refuted | §2.1: a critic that runs is never below flagship |
-| A rewrite of skill text was wrapped in census workers, batches, a new lint and a planned critic round; the user called it a circus | §2.1: no critic on prose-only or mechanical slices; §3.2: no full suite for wording |
+| A rewrite of skill text was wrapped in census workers, batches and a new lint; the user called it a circus | §2.1: one critic per slice, sized to it, no pipeline around it; §3.2: no full suite for wording |
+| A one-line system-prompt change passed internal evaluations and showed a 3% drop on a broader one | §1 agent-read text; §2.1 a critic on every slice; §3.2 eval scenarios for agent-read text |
 
 ---
 
@@ -189,6 +207,6 @@ A slice classified complex (§1) runs F once per candidate whatever its row says
 ```
 BENCH     <models available, by tier>
 LEVELS    <S/U/A/C/N/F/CI/B/M with this repository's commands>
-SLICE     <name>  class <M|S|C> [prose-only]  builder <model, effort>  critic <model, rounds | none: mechanical or prose-only>  proof <levels while working / per candidate / at RC>  not run <level: reason>
+SLICE     <name>  class <M|S|C> [prose-only]  builder <model, effort>  critic <model, what it reads, rounds>  proof <levels while working / per candidate / at RC>  not run <level: reason>
           ...
 ```

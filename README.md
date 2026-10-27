@@ -46,7 +46,7 @@ want that.
 | `/paranoia` | End of a long multi-artifact session, or before a handoff. "I checked it" exhausts nothing; a *class* of defect is exhausted per document, per tree, as far as its dry-proof reaches. |
 | `/blueprint` | Before a build that spans several steps, owners or contracts. Facts before design, design before code, refutation before approval: a fact inventory, locked design principles, a gap ledger whose every proof has a negative control, and a blind critic who never sees the orchestrator's reasoning. A plan reviewed only by its author is a wish list. |
 | `/goal-loop` | Closing a set of gaps end to end with subagents. Every gap declares its terminating proof *before* work starts; "the agent said so" never counts. |
-| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, puts a critic only where the slice left something to judge (never below the flagship tier when it runs), and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
+| `/fleet-economics` | Whenever subagents do the work. Routes each slice to a model tier by its risk, gives every slice a critic sized to its class (never below the flagship tier), and runs each check at the one test level where it proves something — the same full suite run three times per slice proves nothing new. |
 
 ### Why folder format matters
 
@@ -82,9 +82,11 @@ including this one.
 **Instruction adherence decays, and more prose makes it worse.**
 
 Two arguments get conflated here. The **capacity** argument — long instructions crowd out the work —
-is weak against a million-token window. The **cost** argument is not: an always-loaded rule is paid on
-every turn of every session, so keep the rules that decide something and cut duplication and
-contradiction. Neither is the reason this kit is built the way it is.
+is weak against a million-token window. The **cost** argument is not: an always-loaded rule is re-read
+on every turn of every session (at the cache-read rate when the prefix is warm), and the
+[memory docs](https://code.claude.com/docs/en/memory) say it plainly: "Longer files consume more context
+and reduce adherence." Keep the rules that decide something and cut duplication and contradiction.
+Neither is the reason this kit is built the way it is.
 
 The argument that survives is **structural**, which is why it is worth building on: it does not
 depend on how well any particular model follows instructions, so it does not expire when the models
@@ -421,19 +423,26 @@ This applies to all models, all tiers, all context lengths. It's not a weakness 
 
 ### 2026-10-27 — Review Where It Pays
 
-Critics and full suites now run where a slice leaves something to judge, not on every slice. A rewrite of
-skill text wrapped in census workers, batches, a lint and a planned critic round showed the cost of the old
-rule: review on work whose brief had already fixed every edit.
+Every slice still gets a critic; its class now sizes what the critic reads and how many rounds it gets, and
+full suites run where they prove something. A first draft of this entry dropped the critic for mechanical and
+prose-only slices. It was reversed before merge: agent-read text is behaviour, and no test notices a wrong line.
+Anthropic's Claude Code postmortem (23.04.2026) is the case: a one-line system-prompt change passed weeks of
+internal testing ("no regressions in the set of evaluations we ran") and then showed "a 3% drop" on a broader
+evaluation.
 
 **Changed:**
-- **`/fleet-economics`**: no critic on a mechanical or a prose-only slice (prose-only: every changed file is
-  documentation, or every hunk a comment or catalogue string); a critic that runs stays on the flagship tier or
-  above. A new level A (the test files that import or name a changed file) is the per-candidate run for standard
-  work; the full suite per candidate only for complex slices and the wiring, persistence and security rows; nothing
-  further for wording; the whole line keeps one full run before any pull request
+- **`/fleet-economics`**: every slice gets a fresh-context critic on the flagship tier or above; the builder's
+  re-read never counts. Mechanical: the diff and the brief, one round. Prose-only (text only people read): the diff
+  and the sources its claims cite. Standard: probes; agent-read text is read whole as a fresh agent would. Complex:
+  strongest, blind, up to two rounds. Agent-read text (skills, prompts, rule files) is classed by what it governs.
+  A second round only after a reproduced finding; findings need file, line and evidence. A new level A (the test
+  files that import or name a changed file) is the per-candidate run for standard work; the full suite per
+  candidate only for complex slices and the wiring, persistence and security rows; nothing further for wording;
+  eval scenarios for agent-read text where the repository has them; the whole line keeps one full run before any
+  pull request
 - **`/goal-loop`**: the same rules in its slice plan, judgment protocol, final run and fleet mode
-- **`/adversarial-review`**: not for prose-only or fully specified mechanical edits; pin the candidate first; no
-  accuracy figure claimed. Trap 5 follows it
+- **`/adversarial-review`**: the full three passes are mandatory for complex changes, a smaller change gets one
+  fresh-context pass; pin the candidate first; no accuracy figure claimed. Trap 5 follows it
 - **`/paranoia`**: an artifact proven unchanged by hash or commit keeps its last check; live state is always re-read
 - **`/proof`**: known-bad cases only in isolated fixtures; key uniqueness proven by count; the exact predecessor
   backed up and restored once; a failed read aborts the write; read back the target

@@ -1,6 +1,6 @@
 ---
 name: goal-loop
-description: Audit-primed autonomous goal loop — self-define a gap ledger from evidence, dispatch specialized implementer subagents with locked designs, judge every slice (yourself, or through slice managers in fleet mode: gates + diff review + negative control + blind adversarial critic on standard and complex slices), loop agents back on violations, and terminate only on programmatic truth. Use when the user asks to close a set of gaps/points/backlog items end-to-end, says "run the goal loop", or invokes /goal-loop. Not for a fix that closes a single gap (just do it), not for planning without execution, not for reviewing one outward deliverable.
+description: Audit-primed autonomous goal loop — self-define a gap ledger from evidence, dispatch specialized implementer subagents with locked designs, judge every slice (yourself, or through slice managers in fleet mode: gates + diff review + negative control + an adversarial critic sized to the slice), loop agents back on violations, and terminate only on programmatic truth. Use when the user asks to close a set of gaps/points/backlog items end-to-end, says "run the goal loop", or invokes /goal-loop. Not for a fix that closes a single gap (just do it), not for planning without execution, not for reviewing one outward deliverable.
 ---
 
 # Goal Loop — Designer, Judge, Verifier, Support
@@ -84,12 +84,15 @@ Rules:
    `/fleet-economics` (§1 classes, §2 roles and models, §3 the verification ladder).
    Standalone default: a slice is mechanical when its brief fixes every edit and names the
    guarding test, complex when it crosses modules or changes a contract, schema, guardrail,
-   permission or persistence, standard otherwise, and prose-only (any class) when every
-   changed file is documentation or every changed hunk a comment or catalogue string; the
-   fast tier builds a fully specified (mechanical) slice, the balanced tier a standard one,
-   the flagship tier a complex one; no critic on a mechanical or prose-only slice, a critic
-   on the strongest tier for the others; the test level is the narrowest one whose check
-   goes red without the fix. If `/fleet-economics` is installed, it replaces this default. You
+   permission or persistence, standard otherwise (agent-read text such as skills, prompts and
+   rule files is classed by what it governs: complex when it changes a guardrail, permission,
+   merge, deploy or external-write rule), and prose-only when every changed file is human
+   documentation or every changed hunk a comment or catalogue string; the fast tier builds a
+   fully specified (mechanical) slice, the balanced tier a standard one, the flagship tier a
+   complex one; every slice gets a fresh-context critic on the flagship tier or above (one
+   round on the diff and the brief for a mechanical slice, the strongest tier and up to two
+   rounds for a complex one); the test level is the narrowest one whose check goes red
+   without the fix. If `/fleet-economics` is installed, it replaces this default. You
    stay on the session model as judge.
 4. **Token budget and shared usage:** `/fleet-economics` §0 and §4. Standalone default: a
    fan-out of more than `DEFAULT fanout_probe = 3` parallel agents starts as one probe agent
@@ -137,7 +140,7 @@ Rules:
      - **Local-only repos** (the user names them, for example `~/.claude`): commit locally,
        never add a remote.
    - **The agent opens its PR, after judgment.** Order: agent reports "done" → orchestrator
-     judges (diff, own gate run, negative control, critic where Phase 4 item 3 calls for one) → loop-backs on the same agent's
+     judges (diff, own gate run, negative control, critic) → loop-backs on the same agent's
      open pipe → when accepted, the orchestrator sends the commit message and the agent
      commits (as the repo's identity), pushes and opens the PR with the repo's template →
      the pipe stays open until the PR is green → close the agent. Agents never merge; the
@@ -224,10 +227,11 @@ agent's green report is a claim, not evidence.
    held duplicated literals and would have passed a coordinated one-sided edit; a
    cross-file byte comparison replaced them). A checker that reports zero findings must be
    shown to fire on a planted defect.
-3. **Adversarial critic** on every standard and complex slice (Phase 2 item 3); a mechanical
-   or prose-only slice gets none unless the user asks, because its brief fixed every edit and
-   item 2's gate and negative control prove it. Spawn a separate agent whose ONLY job is
-   refutation. It is always a
+3. **Adversarial critic** on every slice, sized by its class (Phase 2 item 3): one round on the
+   diff and the brief for a mechanical slice, the diff and the sources its claims cite for a
+   prose-only one, probes for a standard one, blind and up to two rounds for a complex one. Your
+   own re-read never replaces it. Spawn a separate agent whose ONLY job is refutation. It is
+   always a
    **fresh agent, never a fork** of the orchestrator (a fork inherits your context and your
    assumptions, and then agrees with them); it receives only the spec, the diff and what it
    may execute:
@@ -315,8 +319,7 @@ context compaction.
    procedure replaces this default.
 3. **Slice managers judge, the orchestrator checks.** One manager per slice spawns the
    implementer, reads the diff, runs the gates and every negative control itself, spawns a
-   FRESH blind reviewer per round on a standard or complex slice (none on a mechanical or
-   prose-only one), loops back at most 3 times, writes the full report to a
+   FRESH blind reviewer per round, sized by the slice's class, loops back at most 3 times, writes the full report to a
    file and sends at most 150 words. The orchestrator's final check per slice is scripted
    and holds only these: the static checks and typecheck, the slice's own test files,
    identity, EOL, nothing on a remote, the manager's candidate-run log for the exact head, and
@@ -391,10 +394,9 @@ context compaction.
   orchestrator scopes the roadmap → segments it into pedantically scoped
   single features → writes ONE locked PRD per feature → dispatches ONE implementer per
   feature in its own worktree → keeps every agent's pipe open → does nothing to a slice
-  until that agent reports done → distrusts "done" (judge, gates, negative control, critic
-  on standard and complex slices) → corrections go down the same pipe into the same session
-  → loop until the critic (on a slice without one, the judge) is satisfied against the spec
-  both sides agreed on → agent opens its PR → close.
+  until that agent reports done → distrusts "done" (judge, gates, negative control, critic)
+  → corrections go down the same pipe into the same session → loop until the critic is
+  satisfied against the spec both sides agreed on → agent opens its PR → close.
 - One agent, one feature, one worktree, one PR. An agent never merges, never deploys and
   never writes a shared ledger.
 - No gap is "done" without its pre-declared programmatic proof and a negative control that

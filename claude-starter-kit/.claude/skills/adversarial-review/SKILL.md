@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: Three-pass adversarial verification that finds real bugs in a change before merge — an overclaiming bug-hunt, an overclaiming disproof, then adjudication. Use when the user runs /adversarial-review or asks to adversarially review, stress-test, or prove the correctness of a diff, function, smart contract, or PR before merging. Mandatory before merging smart-contract / fund-release changes. Not for a prose-only change (documentation, comments, catalogue strings) or a mechanical edit whose brief fixed every line and named its guarding test: a diff read and that test cover those.
+description: Three-pass adversarial verification that finds real bugs in a change before merge — an overclaiming bug-hunt, an overclaiming disproof, then adjudication. Use when the user runs /adversarial-review or asks to adversarially review, stress-test, or prove the correctness of a diff, function, smart contract, or PR before merging. Mandatory before merging smart-contract / fund-release changes and any complex change (crosses modules; changes a contract, schema, guardrail, permission or persistence, or an agent rule that governs one). A smaller change gets one fresh-context review pass sized to it instead.
 ---
 
 # Adversarial Review — Three-Pass Verification
